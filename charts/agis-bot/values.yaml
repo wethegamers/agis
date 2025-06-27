@@ -1,3 +1,6 @@
+# Default values for agis-bot Helm chart.
+# NOTE: All environment-specific values (ingress, secrets, etc.) should be overridden in your ArgoCD Application manifests.
+# These defaults are placeholders and should not be used for production or staging!
 replicaCount: 1
 image:
   repository: "ghcr.io/wethegamers/agis-bot"
@@ -24,19 +27,12 @@ env:
 
 # Additional fields for secrets/configs
 clusterSecretStoreName: vault-kv-secret
-vaultSecretPath: development/agis-bot
+vaultSecretPath: ""
 configs:
-  configOne: development-config-one
-  configTwo: development-config-two
+  configOne: ""
+  configTwo: ""
 originIssuerIsEnabled: false
 ingress:
   enabled: true
-  hosts:
-    - host: agis-bot-development.euw.wtgg.org
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: agis-bot-tls
-      hosts:
-        - agis-bot-development.euw.wtgg.org
+  hosts: [] # Must be overridden per environment
+  tls: []   # Must be overridden per environment
