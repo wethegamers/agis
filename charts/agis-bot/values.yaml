@@ -1,0 +1,42 @@
+replicaCount: 1
+image:
+  repository: "ghcr.io/wethegamers/agis-bot"
+  tag: "latest"
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 9090
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+resources: {}
+serviceAccount:
+  create: true
+  name: agis-bot
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+env:
+  DISCORD_TOKEN: ""
+  DB_HOST: "postgresql"
+
+# Additional fields for secrets/configs
+clusterSecretStoreName: vault-kv-secret
+vaultSecretPath: development/agis-bot
+configs:
+  configOne: development-config-one
+  configTwo: development-config-two
+originIssuerIsEnabled: false
+ingress:
+  enabled: true
+  hosts:
+    - host: agis-bot-development.euw.wtgg.org
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: agis-bot-tls
+      hosts:
+        - agis-bot-development.euw.wtgg.org

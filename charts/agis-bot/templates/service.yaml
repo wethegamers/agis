@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: agis-bot-metrics
+  labels:
+    app: agis-bot
+  annotations:
+    {{- toYaml .Values.service.annotations | nindent 4 }}
+spec:
+  selector:
+    app: agis-bot
+  ports:
+    - name: metrics
+      port: {{ .Values.service.port }}
+      targetPort: metrics
+      protocol: TCP
+  type: {{ .Values.service.type }}
