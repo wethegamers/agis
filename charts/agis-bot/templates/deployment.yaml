@@ -33,6 +33,31 @@ spec:
               protocol: TCP
           env:
             - name: DISCORD_TOKEN
-              value: {{ .Values.env.DISCORD_TOKEN | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: DISCORD_TOKEN
             - name: DB_HOST
-              value: {{ .Values.env.DB_HOST | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: DB_HOST
+                  optional: true
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: DB_USER
+                  optional: true
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: DB_PASSWORD
+                  optional: true
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: DB_NAME
+                  optional: true
