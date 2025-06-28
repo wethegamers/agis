@@ -19,10 +19,10 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- with .Values.podSecurityContext }}
       securityContext:
-        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
-        runAsUser: {{ .Values.securityContext.runAsUser }}
-        fsGroup: {{ .Values.securityContext.fsGroup }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: agis-bot
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -60,4 +60,22 @@ spec:
                 secretKeyRef:
                   name: agis-bot-secrets
                   key: DB_NAME
+                  optional: true
+            - name: AGONES_ALLOCATOR_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: AGONES_ALLOCATOR_ENDPOINT
+                  optional: true
+            - name: AGONES_ALLOCATOR_TLS
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: AGONES_ALLOCATOR_TLS
+                  optional: true
+            - name: AGONES_NAMESPACE
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: AGONES_NAMESPACE
                   optional: true

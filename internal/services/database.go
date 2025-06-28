@@ -200,6 +200,11 @@ func (d *DatabaseService) initDatabase() error {
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_work TIMESTAMP DEFAULT '1970-01-01'`,
 		`ALTER TABLE game_servers ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE`,
 		`ALTER TABLE game_servers ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''`,
+		// Server cleanup implementation migrations
+		`ALTER TABLE game_servers ADD COLUMN IF NOT EXISTS stopped_at TIMESTAMP`,
+		`ALTER TABLE game_servers ADD COLUMN IF NOT EXISTS last_heartbeat TIMESTAMP DEFAULT NOW()`,
+		`ALTER TABLE game_servers ADD COLUMN IF NOT EXISTS error_message TEXT DEFAULT ''`,
+		`ALTER TABLE game_servers ADD COLUMN IF NOT EXISTS cleanup_at TIMESTAMP`,
 	}
 
 	for _, migration := range migrations {
