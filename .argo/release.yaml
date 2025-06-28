@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: agis-bot-release-
+spec:
+  entrypoint: release
+  templates:
+    - name: release
+      steps:
+        - - name: update-gitops-repo-prod
+            template: update-gitops-repo-prod
+  templates:
+    - name: update-gitops-repo-prod
+      container:
+        image: alpine/git:2.43.0
+        command: [sh, -c]
+        args:
+          - |
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git config --global user.name "GitHub Actions"
+            git clone $GITOPS_REPO_URL repo
+            cd repo
+            # Update the chart version for production
+            yq e -i '.spec.source.targetRevision = "{{workflow.parameters.shortSha}}"' registry/clusters/wtg-eu-west/agis-bot-production.yaml
+            git add .
+            git commit -m "Promote agis-bot chart version {{workflow.parameters.shortSha}} to production"
+            git push
+        env:
+          - name: GITOPS_REPO_URL
+            valueFrom:
+              secretKeyRef:
+                name: gitops-creds
+                key: url
+          - name: GITOPS_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: gitops-creds
+                key: token
