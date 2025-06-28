@@ -49,11 +49,11 @@ spec:
                 - name: appName
                   value: '{{workflow.parameters.appName}}'
                 - name: chartDir
-                  value: 'charts/{{workflow.parameters.appName}}'
-        - - name: publish-helm-chart
+                  value: '{{workflow.parameters.chartDir}}'
+        - - name: set-chart-versions
             templateRef:
               name: cwft-helm
-              template: publish-chart
+              template: set-chart-versions
               clusterScope: true
             arguments:
               artifacts:
@@ -63,6 +63,22 @@ spec:
                 - name: appName
                   value: '{{workflow.parameters.appName}}'
                 - name: chartDir
-                  value: 'charts/{{workflow.parameters.appName}}'
+                  value: '{{workflow.parameters.chartDir}}'
                 - name: chartVersion
                   value: '{{steps.get-initial-chart-version.outputs.result}}-rc.{{workflow.parameters.shortSha}}'
+                - name: shortSha
+                  value: '{{workflow.parameters.shortSha}}'
+        - - name: publish-helm-chart
+            templateRef:
+              name: cwft-helm
+              template: publish-chart
+              clusterScope: true
+            arguments:
+              artifacts:
+                - name: repo-source
+                  from: '{{steps.set-chart-versions.outputs.artifacts.repo-source}}'
+              parameters:
+                - name: appName
+                  value: '{{workflow.parameters.appName}}'
+                - name: chartDir
+                  value: '{{workflow.parameters.chartDir}}'
