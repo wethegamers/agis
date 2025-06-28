@@ -1,38 +1,85 @@
-# Default values for agis-bot Helm chart.
-# NOTE: All environment-specific values (ingress, secrets, etc.) should be overridden in your ArgoCD Application manifests.
-# These defaults are placeholders and should not be used for production or staging!
+# Default values for agis-bot.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
 replicaCount: 1
+
 image:
-  repository: "ghcr.io/wethegamers/agis-bot"
-  tag: "latest"
+  repository: ghcr.io/wethegamers/agis-bot
   pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+deploymentAnnotations:
+  linkerd.io/inject: "enabled"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: agis-bot
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
 service:
   type: ClusterIP
   port: 9090
-  annotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "9090"
-    prometheus.io/path: "/metrics"
-resources: {}
-serviceAccount:
-  create: true
-  name: agis-bot
-securityContext:
-  runAsNonRoot: true
-  runAsUser: 1000
-  fsGroup: 1000
-env:
-  DISCORD_TOKEN: ""
-  DB_HOST: "postgresql"
 
-# Additional fields for secrets/configs
-clusterSecretStoreName: vault-kv-secret
-vaultSecretPath: ""
-configs:
-  configOne: ""
-  configTwo: ""
-originIssuerIsEnabled: false
 ingress:
   enabled: true
-  hosts: [] # Must be overridden per environment
-  tls: []   # Must be overridden per environment
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # Change to "letsencrypt-staging" while testing adjustments, change to "letsencrypt-prod" after confirming LE certificate was issued
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+agis-bot:
+  host: chart-example.local
+  console: chart-example.local
+
+vaultMountPoint: kubefirst
+vaultSecretPath: development/agis-bot
+clusterSecretStoreName: vault-kv-secret
+
+originIssuerIsEnabled: false

@@ -1,38 +1,69 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: agis-bot-deploy-
+  namespace: argo
 spec:
-  entrypoint: deploy
+  entrypoint: main
+  serviceAccountName: argo-server
   templates:
-    - name: deploy
+    - name: main
       steps:
-        - - name: update-gitops-repo
-            template: update-gitops-repo
-  templates:
-    - name: update-gitops-repo
-      container:
-        image: alpine/git:2.43.0
-        command: [sh, -c]
-        args:
-          - |
-            git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            git config --global user.name "GitHub Actions"
-            git clone $GITOPS_REPO_URL repo
-            cd repo
-            # Update the chart version for the environment
-            yq e -i '.spec.source.targetRevision = "{{workflow.parameters.shortSha}}"' registry/clusters/wtg-eu-west/agis-bot-{{workflow.parameters.environment}}.yaml
-            git add .
-            git commit -m "Update agis-bot chart version to {{workflow.parameters.shortSha}} for {{workflow.parameters.environment}}"
-            git push
-        env:
-          - name: GITOPS_REPO_URL
-            valueFrom:
-              secretKeyRef:
-                name: gitops-creds
-                key: url
-          - name: GITOPS_TOKEN
-            valueFrom:
-              secretKeyRef:
-                name: gitops-creds
-                key: token
+        - - name: checkout
+            templateRef:
+              name: cwft-git
+              template: checkout-with-gitops-ssh
+              clusterScope: true
+            arguments:
+              parameters:
+                - name: appName
+                  value: '{{workflow.parameters.appName}}'
+                - name: branch
+                  value: '{{workflow.parameters.branch}}'
+                - name: gitUrlNoProtocol
+                  value: '{{workflow.parameters.gitUrlNoProtocol}}'
+        - - name: get-initial-chart-version
+            templateRef:
+              name: cwft-helm
+              template: get-chart-version
+              clusterScope: true
+            arguments:
+              artifacts:
+                - name: repo-source
+                  from: '{{steps.checkout.outputs.artifacts.repo-source}}'
+              parameters:
+                - name: appName
+                  value: '{{workflow.parameters.appName}}'
+                - name: chartDir
+                  value: 'charts/{{workflow.parameters.appName}}'
+        - - name: set-environment-version
+            templateRef:
+              name: cwft-helm
+              template: set-environment-version
+              clusterScope: true
+            arguments:
+              artifacts:
+                - name: repo-source
+                  from: '{{steps.checkout.outputs.artifacts.repo-source}}'
+              parameters:
+                - name: fullChartPath
+                  value: 'registry/environments/{{workflow.parameters.environment}}/{{workflow.parameters.appName}}/Chart.yaml'
+                - name: chartVersion
+                  value: '{{steps.get-initial-chart-version.outputs.result}}-rc.{{workflow.parameters.shortSha}}'
+                - name: environment
+                  value: '{{workflow.parameters.environment}}'
+        - - name: commit
+            templateRef:
+              name: cwft-git
+              template: pull-commit-push-ssh
+              clusterScope: true
+            arguments:
+              artifacts:
+                - name: repo-source
+                  from: '{{steps.set-environment-version.outputs.artifacts.repo-source}}'
+              parameters:
+                - name: repoName
+                  value: 'gitops'
+                - name: gitUrlNoProtocol
+                  value: '{{workflow.parameters.gitUrlNoProtocol}}'
+                - name: commitMessage
+                  value: 'setting {{workflow.parameters.appName}} {{workflow.parameters.environment}} to chart version {{steps.get-initial-chart-version.outputs.result}}-rc.{{workflow.parameters.shortSha}}'

@@ -1,53 +1,64 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: agis-bot-publish-
+  namespace: argo
 spec:
-  entrypoint: publish
+  entrypoint: main
+  serviceAccountName: argo-server
   templates:
-    - name: publish
+    - name: main
       steps:
-        - - name: build-and-push-image
-            template: build-and-push-image
-        - - name: package-and-push-chart
-            template: package-and-push-chart
-  templates:
-    - name: build-and-push-image
-      container:
-        image: docker:24
-        command: [sh, -c]
-        args:
-          - |
-            docker login ghcr.io -u $GITHUB_ACTOR -p $GITHUB_TOKEN
-            docker build -t ghcr.io/wethegamers/agis-bot:{{workflow.parameters.shortSha}} .
-            docker push ghcr.io/wethegamers/agis-bot:{{workflow.parameters.shortSha}}
-        env:
-          - name: GITHUB_TOKEN
-            valueFrom:
-              secretKeyRef:
-                name: github-token
-                key: token
-    - name: package-and-push-chart
-      container:
-        image: alpine/helm:3.13.2
-        command: [sh, -c]
-        args:
-          - |
-            helm package ./charts/agis-bot --version {{workflow.parameters.shortSha}}
-            curl --data-binary "@agis-bot-{{workflow.parameters.shortSha}}.tgz" -u "$CHARTMUSEUM_USER:$CHARTMUSEUM_PASS" "$CHARTMUSEUM_URL/api/charts?force=true"
-        env:
-          - name: CHARTMUSEUM_USER
-            valueFrom:
-              secretKeyRef:
-                name: chartmuseum-creds
-                key: username
-          - name: CHARTMUSEUM_PASS
-            valueFrom:
-              secretKeyRef:
-                name: chartmuseum-creds
-                key: password
-          - name: CHARTMUSEUM_URL
-            valueFrom:
-              secretKeyRef:
-                name: chartmuseum-creds
-                key: url
+        - - name: publish-container
+            templateRef:
+              name: cwft-kaniko
+              template: build-push-ssh
+              clusterScope: true
+            arguments:
+              parameters:
+                - name: appName
+                  value: '{{workflow.parameters.appName}}'
+                - name: branch
+                  value: '{{workflow.parameters.branch}}'
+                - name: containerRegistryURL
+                  value: '{{workflow.parameters.containerRegistryURL}}'
+                - name: gitUrlNoProtocol
+                  value: '{{workflow.parameters.gitUrlNoProtocol}}'
+        - - name: checkout
+            templateRef:
+              name: cwft-git
+              template: checkout-with-gitops-ssh
+              clusterScope: true
+            arguments:
+              parameters:
+                - name: appName
+                  value: '{{workflow.parameters.appName}}'
+                - name: branch
+                  value: '{{workflow.parameters.branch}}'
+                - name: gitUrlNoProtocol
+                  value: '{{workflow.parameters.gitUrlNoProtocol}}'
+        - - name: get-initial-chart-version
+            templateRef:
+              name: cwft-helm
+              template: get-chart-version
+              clusterScope: true
+            arguments:
+              artifacts:
+                - name: repo-source
+                  from: '{{steps.checkout.outputs.artifacts.repo-source}}'
+              parameters:
+                - name: appName
+                  value: '{{workflow.parameters.appName}}'
+        - - name: publish-helm-chart
+            templateRef:
+              name: cwft-helm
+              template: publish-chart
+              clusterScope: true
+            arguments:
+              artifacts:
+                - name: repo-source
+                  from: '{{steps.checkout.outputs.artifacts.repo-source}}'
+              parameters:
+                - name: appName
+                  value: '{{workflow.parameters.appName}}'
+                - name: chartVersion
+                  value: '{{steps.get-initial-chart-version.outputs.result}}-rc.{{workflow.parameters.shortSha}}'
