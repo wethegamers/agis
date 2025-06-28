@@ -79,3 +79,52 @@ spec:
                   name: agis-bot-secrets
                   key: AGONES_NAMESPACE
                   optional: true
+            # Discord Logging Channel IDs
+            - name: LOG_CHANNEL_GENERAL
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: LOG_CHANNEL_GENERAL
+                  optional: true
+            - name: LOG_CHANNEL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: LOG_CHANNEL_USER
+                  optional: true
+            - name: LOG_CHANNEL_MOD
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: LOG_CHANNEL_MOD
+                  optional: true
+            - name: LOG_CHANNEL_ERROR
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: LOG_CHANNEL_ERROR
+                  optional: true
+            - name: LOG_CHANNEL_CLEANUP
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: LOG_CHANNEL_CLEANUP
+                  optional: true
+            - name: LOG_CHANNEL_CLUSTER
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: LOG_CHANNEL_CLUSTER
+                  optional: true
+            - name: LOG_CHANNEL_EXPORT
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: LOG_CHANNEL_EXPORT
+                  optional: true
+            - name: LOG_CHANNEL_AUDIT
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: LOG_CHANNEL_AUDIT
+                  optional: true
