@@ -31,8 +31,10 @@ jobs:
         run: |
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
-          kubectl version --client
+          mkdir -p $HOME/bin
+          mv kubectl $HOME/bin/
+          echo "$HOME/bin" >> $GITHUB_PATH
+          $HOME/bin/kubectl version --client
       - run: echo ${GITHUB_REPOSITORY}
       - run: echo ${GITHUB_REPOSITORY_NAME_PART}
       - run: echo ${GITHUB_SERVER_URL}
@@ -73,8 +75,10 @@ jobs:
         run: |
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
-          kubectl version --client
+          mkdir -p $HOME/bin
+          mv kubectl $HOME/bin/
+          echo "$HOME/bin" >> $GITHUB_PATH
+          $HOME/bin/kubectl version --client
       - name: development
         run: |
           echo "Install argo"
@@ -112,8 +116,10 @@ jobs:
         run: |
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
-          kubectl version --client
+          mkdir -p $HOME/bin
+          mv kubectl $HOME/bin/
+          echo "$HOME/bin" >> $GITHUB_PATH
+          $HOME/bin/kubectl version --client
       - name: staging
         run: |
           echo "Install argo"
@@ -151,8 +157,10 @@ jobs:
         run: |
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
-          kubectl version --client
+          mkdir -p $HOME/bin
+          mv kubectl $HOME/bin/
+          echo "$HOME/bin" >> $GITHUB_PATH
+          $HOME/bin/kubectl version --client
       - name: release
         run: |
           echo "Install argo"
