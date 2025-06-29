@@ -1,0 +1,38 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "agis-bot.fullname" . }}
+  labels:
+    {{- include "agis-bot.labels" . | nindent 4 }}
+rules:
+# Agones GameServer management
+- apiGroups: ["agones.dev"]
+  resources: ["gameservers", "fleets", "gameserverallocations"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Agones allocation management  
+- apiGroups: ["allocation.agones.dev"]
+  resources: ["gameserverallocations"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Core Kubernetes resources for monitoring
+- apiGroups: [""]
+  resources: ["pods", "services", "events"]
+  verbs: ["get", "list", "watch"]
+# Apps resources for deployment status
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "agis-bot.fullname" . }}
+  labels:
+    {{- include "agis-bot.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "agis-bot.fullname" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "agis-bot.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
