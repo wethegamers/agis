@@ -35,3 +35,4 @@ A Go-based Discord bot for the WTG platform.
 - Setup guide: `README.md`
 - Environment config: `.env.example` (for local dev; in-cluster uses Vault)
 - All commands documented in the help system
+# RBAC fix applied - Sun Jun 29 08:47:54 PM BST 2025
