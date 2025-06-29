@@ -37,3 +37,4 @@ A Go-based Discord bot for the WTG platform.
 - All commands documented in the help system
 # RBAC fix applied - Sun Jun 29 08:47:54 PM BST 2025
 # CI/CD fix applied - kubeconfig secret configured
+# Trigger new workflow after fixing Git checkout template
