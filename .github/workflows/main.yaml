@@ -45,7 +45,6 @@ jobs:
           gunzip argo-linux-amd64.gz
           chmod +x argo-linux-amd64
           echo "commit sha ${GITHUB_SHA}"
-          $HOME/bin/kubectl get pods -n ${ARGO_NAMESPACE}
           
           echo "Submitting Argo workflow..."
           ./argo-linux-amd64 version --short
