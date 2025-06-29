@@ -45,9 +45,6 @@ jobs:
           gunzip argo-linux-amd64.gz
           chmod +x argo-linux-amd64
           echo "commit sha ${GITHUB_SHA}"
-          
-          echo "Checking Kubernetes connectivity..."
-          $HOME/bin/kubectl get namespace ${ARGO_NAMESPACE}
           $HOME/bin/kubectl get pods -n ${ARGO_NAMESPACE}
           
           echo "Submitting Argo workflow..."
@@ -86,10 +83,6 @@ jobs:
           chmod +x argo-linux-amd64
           echo "commit sha ${GITHUB_SHA}"
           
-          echo "Checking Kubernetes connectivity..."
-          $HOME/bin/kubectl get pods -n ${ARGO_NAMESPACE}
-          $HOME/bin/kubectl get namespace ${ARGO_NAMESPACE}
-          
           echo "Submitting Argo workflow..."
           ./argo-linux-amd64 version --short
           ./argo-linux-amd64 submit .argo/deploy.yaml \
@@ -126,11 +119,6 @@ jobs:
           chmod +x argo-linux-amd64
           echo "commit sha ${GITHUB_SHA}"
           
-          echo "Checking Kubernetes connectivity..."
-          kubectl get nodes
-          kubectl get namespace ${ARGO_NAMESPACE}
-          kubectl get pods -n ${ARGO_NAMESPACE}
-          
           echo "Submitting Argo workflow..."
           ./argo-linux-amd64 version --short
           ./argo-linux-amd64 submit .argo/deploy.yaml \
@@ -166,11 +154,6 @@ jobs:
           gunzip argo-linux-amd64.gz
           chmod +x argo-linux-amd64
           echo "commit sha ${GITHUB_SHA}"
-          
-          echo "Checking Kubernetes connectivity..."
-          kubectl get nodes
-          kubectl get namespace ${ARGO_NAMESPACE}
-          kubectl get pods -n ${ARGO_NAMESPACE}
           
           echo "Submitting Argo workflow..."
           ./argo-linux-amd64 version --short
