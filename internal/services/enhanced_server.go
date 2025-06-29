@@ -26,7 +26,11 @@ func NewEnhancedServerService(db *DatabaseService, agones *AgonesService, notifi
 }
 
 // CreateGameServer creates a new game server with full lifecycle management
-func (e *EnhancedServerService) CreateGameServer(ctx context.Context, userID, gameType, serverName string, costPerHour int, channelID string) (*GameServer, error) {
+func (e *EnhancedServerService) CreateGameServer(ctx context.Context, userID, gameType, serverName string, costPerHour int, optionalChannelID ...string) (*GameServer, error) {
+	var channelID string
+	if len(optionalChannelID) > 0 {
+		channelID = optionalChannelID[0]
+	}
 	// Create database record first
 	server := &GameServer{
 		DiscordID:      userID,

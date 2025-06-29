@@ -177,11 +177,11 @@ func (c *CreateServerCommand) Execute(ctx *CommandContext) error {
 		}
 	} else {
 		// Use enhanced service for full lifecycle management
-		var channelID string
 		if notifyInChannel {
-			channelID = ctx.Message.ChannelID
+			_, err = enhancedService.CreateGameServer(ctx.Context, ctx.Message.Author.ID, gameType, serverName, costPerHour, ctx.Message.ChannelID)
+		} else {
+			_, err = enhancedService.CreateGameServer(ctx.Context, ctx.Message.Author.ID, gameType, serverName, costPerHour)
 		}
-		_, err = enhancedService.CreateGameServer(ctx.Context, ctx.Message.Author.ID, gameType, serverName, costPerHour, channelID)
 		if err != nil {
 			return fmt.Errorf("failed to create server: %v", err)
 		}
