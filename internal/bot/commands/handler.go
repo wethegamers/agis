@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -14,14 +15,18 @@ import (
 
 // CommandContext holds the context for command execution
 type CommandContext struct {
-	Session     *discordgo.Session
-	Message     *discordgo.MessageCreate
-	Args        []string
-	DB          *services.DatabaseService
-	Config      *config.Config
-	Permissions *bot.PermissionChecker
-	UserPerm    bot.Permission
-	Logger      *services.LoggingService
+	Session        *discordgo.Session
+	Message        *discordgo.MessageCreate
+	Args           []string
+	DB             *services.DatabaseService
+	Config         *config.Config
+	Permissions    *bot.PermissionChecker
+	UserPerm       bot.Permission
+	Logger         *services.LoggingService
+	Context        context.Context
+	EnhancedServer *services.EnhancedServerService
+	Notifications  *services.NotificationService
+	Agones         *services.AgonesService
 }
 
 // Command represents a bot command
@@ -34,20 +39,42 @@ type Command interface {
 
 // CommandHandler manages all bot commands
 type CommandHandler struct {
-	commands    map[string]Command
-	config      *config.Config
-	db          *services.DatabaseService
-	permissions *bot.PermissionChecker
-	logger      *services.LoggingService
+	commands       map[string]Command
+	config         *config.Config
+	db             *services.DatabaseService
+	permissions    *bot.PermissionChecker
+	logger         *services.LoggingService
+	enhancedServer *services.EnhancedServerService
+	notifications  *services.NotificationService
+	agones         *services.AgonesService
 }
 
 func NewCommandHandler(cfg *config.Config, db *services.DatabaseService, logger *services.LoggingService) *CommandHandler {
+	// Initialize Agones service
+	agonesService, err := services.NewAgonesService()
+	if err != nil {
+		log.Printf("⚠️ Failed to initialize Agones service: %v", err)
+		agonesService = nil
+	}
+
+	// Initialize notification service
+	notificationService := services.NewNotificationService(nil, db, logger) // Session will be set later
+
+	// Initialize enhanced server service
+	var enhancedService *services.EnhancedServerService
+	if agonesService != nil {
+		enhancedService = services.NewEnhancedServerService(db, agonesService, notificationService)
+	}
+
 	handler := &CommandHandler{
-		commands:    make(map[string]Command),
-		config:      cfg,
-		db:          db,
-		permissions: bot.NewPermissionChecker(cfg),
-		logger:      logger,
+		commands:       make(map[string]Command),
+		config:         cfg,
+		db:             db,
+		permissions:    bot.NewPermissionChecker(cfg),
+		logger:         logger,
+		enhancedServer: enhancedService,
+		notifications:  notificationService,
+		agones:         agonesService,
 	}
 
 	// Register all commands
@@ -135,14 +162,18 @@ func (h *CommandHandler) HandleMessage(s *discordgo.Session, m *discordgo.Messag
 
 		// Create command context
 		ctx := &CommandContext{
-			Session:     s,
-			Message:     m,
-			Args:        args[1:], // Remove command name from args
-			DB:          h.db,
-			Config:      h.config,
-			Permissions: h.permissions,
-			UserPerm:    userPerm,
-			Logger:      h.logger,
+			Session:        s,
+			Message:        m,
+			Args:           args[1:], // Remove command name from args
+			DB:             h.db,
+			Config:         h.config,
+			Permissions:    h.permissions,
+			UserPerm:       userPerm,
+			Logger:         h.logger,
+			Context:        context.Background(),
+			EnhancedServer: h.enhancedServer,
+			Notifications:  h.notifications,
+			Agones:         h.agones,
 		}
 
 		// Log command execution
@@ -176,13 +207,17 @@ func (h *CommandHandler) HandleMessage(s *discordgo.Session, m *discordgo.Messag
 		// Unknown command, show help
 		if helpCmd, exists := h.commands["help"]; exists {
 			ctx := &CommandContext{
-				Session:     s,
-				Message:     m,
-				Args:        []string{},
-				DB:          h.db,
-				Config:      h.config,
-				Permissions: h.permissions,
-				UserPerm:    userPerm,
+				Session:        s,
+				Message:        m,
+				Args:           []string{},
+				DB:             h.db,
+				Config:         h.config,
+				Permissions:    h.permissions,
+				UserPerm:       userPerm,
+				Context:        context.Background(),
+				EnhancedServer: h.enhancedServer,
+				Notifications:  h.notifications,
+				Agones:         h.agones,
 			}
 			helpCmd.Execute(ctx)
 		}
@@ -212,4 +247,11 @@ func (h *CommandHandler) sendError(s *discordgo.Session, m *discordgo.MessageCre
 
 func (h *CommandHandler) GetCommands() map[string]Command {
 	return h.commands
+}
+
+// SetDiscordSession sets the Discord session for services that need it
+func (h *CommandHandler) SetDiscordSession(session *discordgo.Session) {
+	if h.notifications != nil {
+		h.notifications.SetDiscordSession(session)
+	}
 }
