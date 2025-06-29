@@ -136,20 +136,30 @@ func (c *CreateServerCommand) Execute(ctx *CommandContext) error {
 		return err
 	}
 
-	// Create the server record
-	server := &services.GameServer{
-		DiscordID:   ctx.Message.Author.ID,
-		Name:        serverName,
-		GameType:    gameType,
-		Status:      "creating",
-		CostPerHour: costPerHour,
-		IsPublic:    false,
-		Description: fmt.Sprintf("A %s server", gameType),
-	}
+	// Create the server record using enhanced service
+	enhancedService := ctx.EnhancedServer
+	if enhancedService == nil {
+		// Fallback to old method if enhanced service not available
+		server := &services.GameServer{
+			DiscordID:   ctx.Message.Author.ID,
+			Name:        serverName,
+			GameType:    gameType,
+			Status:      "creating",
+			CostPerHour: costPerHour,
+			IsPublic:    false,
+			Description: fmt.Sprintf("A %s server", gameType),
+		}
 
-	err = ctx.DB.SaveGameServer(server)
-	if err != nil {
-		return fmt.Errorf("failed to create server: %v", err)
+		err = ctx.DB.SaveGameServer(server)
+		if err != nil {
+			return fmt.Errorf("failed to create server: %v", err)
+		}
+	} else {
+		// Use enhanced service for full lifecycle management
+		_, err = enhancedService.CreateGameServer(ctx.Context, ctx.Message.Author.ID, gameType, serverName, costPerHour)
+		if err != nil {
+			return fmt.Errorf("failed to create server: %v", err)
+		}
 	}
 
 	// Deduct initial credits (1 hour worth)

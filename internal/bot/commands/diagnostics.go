@@ -2,8 +2,10 @@ package commands
 
 import (
 	"fmt"
+	"time"
 
 	"agis-bot/internal/bot"
+	"agis-bot/internal/services"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -36,7 +38,7 @@ func (c *DiagnosticsCommand) Execute(ctx *CommandContext) error {
 				},
 				{
 					Name:  "Available Tests",
-					Value: "• **Connection Test** - Check if server is reachable\n• **Performance Metrics** - CPU, RAM, and disk usage\n• **Game Status** - Players online, game state\n• **Resource Usage** - Credit consumption rate",
+					Value: "• **Connection Test** - Check if server is reachable\n• **Live Status** - Real-time status from Kubernetes\n• **Performance Metrics** - CPU, RAM, and disk usage\n• **Game Status** - Players online, game state\n• **Resource Usage** - Credit consumption rate",
 				},
 				{
 					Name:  "Example",
@@ -53,8 +55,16 @@ func (c *DiagnosticsCommand) Execute(ctx *CommandContext) error {
 
 	serverName := ctx.Args[0]
 
-	// Get the server
-	server, err := ctx.DB.GetServerByName(serverName, ctx.Message.Author.ID)
+	// Get the server using enhanced service for live data
+	var server *services.GameServer
+	var err error
+	
+	if ctx.EnhancedServer != nil {
+		server, err = ctx.EnhancedServer.GetEnhancedServerInfo(ctx.Context, serverName, ctx.Message.Author.ID)
+	} else {
+		server, err = ctx.DB.GetServerByName(serverName, ctx.Message.Author.ID)
+	}
+
 	if err != nil {
 		embed := &discordgo.MessageEmbed{
 			Title:       "❌ Server Not Found",
@@ -72,18 +82,24 @@ func (c *DiagnosticsCommand) Execute(ctx *CommandContext) error {
 	var statusEmoji, statusText, healthText string
 	var healthColor int
 
-	switch server.Status {
-	case "running", "ready":
+	// Use live status from Kubernetes if available
+	displayStatus := server.Status
+	if server.AgonesStatus != "" && ctx.EnhancedServer != nil {
+		displayStatus = server.AgonesStatus
+	}
+
+	switch displayStatus {
+	case "running", "ready", "Ready", "Allocated":
 		statusEmoji = "✅"
 		statusText = "Online"
 		healthText = "All systems operational"
 		healthColor = 0x00ff00
-	case "creating":
+	case "creating", "Creating", "PortAllocation", "Starting", "Scheduled", "RequestReady":
 		statusEmoji = "⏳"
 		statusText = "Starting Up"
 		healthText = "Server is being deployed"
 		healthColor = 0xffa500
-	case "stopped":
+	case "stopped", "Shutdown":
 		statusEmoji = "⏸️"
 		statusText = "Stopped"
 		healthText = "Server is paused"
@@ -93,6 +109,11 @@ func (c *DiagnosticsCommand) Execute(ctx *CommandContext) error {
 		statusText = "Stopping"
 		healthText = "Server is shutting down"
 		healthColor = 0xff9900
+	case "error", "Error", "Unhealthy":
+		statusEmoji = "❌"
+		statusText = "Error"
+		healthText = "Server encountered an error"
+		healthColor = 0xff0000
 	default:
 		statusEmoji = "❓"
 		statusText = "Unknown"
@@ -206,6 +227,18 @@ func (c *DiagnosticsCommand) Execute(ctx *CommandContext) error {
 		})
 	}
 
+	// Add Kubernetes information if available
+	if server.KubernetesUID != "" && ctx.EnhancedServer != nil {
+		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
+			Name:   "🔗 Kubernetes Info",
+			Value:  fmt.Sprintf("**UID:** `%s`\n**Agones Status:** %s\n**Last Sync:** %s", 
+				server.KubernetesUID[:8]+"...", 
+				server.AgonesStatus, 
+				formatSyncTime(server.LastStatusSync)),
+			Inline: false,
+		})
+	}
+
 	_, err = ctx.Session.ChannelMessageSendEmbed(ctx.Message.ChannelID, embed)
 	return err
 }
@@ -311,4 +344,24 @@ func (c *PingCommand) Execute(ctx *CommandContext) error {
 
 	_, err = ctx.Session.ChannelMessageSendEmbed(ctx.Message.ChannelID, embed)
 	return err
+}
+
+// formatSyncTime formats the last sync time for display
+func formatSyncTime(syncTime *time.Time) string {
+	if syncTime == nil || syncTime.IsZero() {
+		return "Never"
+	}
+	
+	now := time.Now()
+	diff := now.Sub(*syncTime)
+	
+	if diff < time.Minute {
+		return fmt.Sprintf("%.0f seconds ago", diff.Seconds())
+	} else if diff < time.Hour {
+		return fmt.Sprintf("%.0f minutes ago", diff.Minutes())
+	} else if diff < 24*time.Hour {
+		return fmt.Sprintf("%.1f hours ago", diff.Hours())
+	} else {
+		return fmt.Sprintf("%.0f days ago", diff.Hours()/24)
+	}
 }

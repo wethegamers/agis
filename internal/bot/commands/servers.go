@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"agis-bot/internal/bot"
+	"agis-bot/internal/services"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -25,7 +26,16 @@ func (c *ServersCommand) RequiredPermission() bot.Permission {
 }
 
 func (c *ServersCommand) Execute(ctx *CommandContext) error {
-	servers, err := ctx.DB.GetUserServers(ctx.Message.Author.ID)
+	var servers []*services.GameServer
+	var err error
+
+	// Use enhanced service if available for live status
+	if ctx.EnhancedServer != nil {
+		servers, err = ctx.EnhancedServer.GetUserServersEnhanced(ctx.Context, ctx.Message.Author.ID)
+	} else {
+		servers, err = ctx.DB.GetUserServers(ctx.Message.Author.ID)
+	}
+
 	if err != nil {
 		return fmt.Errorf("failed to get servers: %v", err)
 	}
