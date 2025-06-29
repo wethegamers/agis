@@ -2,8 +2,8 @@ apiVersion: v2
 dependencies:
   - name: agis-bot
     repository: http://chartmuseum.chartmuseum.svc.cluster.local:8080
-    version: 0.0.1-rc.b2afb3c
-description: agis-bot example application
+    version: 0.2.0
+description: agis-bot application with Agones GameServer integration
 name: agis-bot
 type: application
-version: 1.0.0
+version: 0.2.0
