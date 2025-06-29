@@ -48,6 +48,10 @@ type GameServer struct {
 	Description   string
 	ErrorMessage  string
 	CleanupAt     *time.Time
+	// Kubernetes/Agones integration fields
+	KubernetesUID  string     // UID of the GameServer in Kubernetes
+	AgonesStatus   string     // Current Agones GameServer status
+	LastStatusSync *time.Time // Last time we synced with Kubernetes
 }
 
 // PublicServer represents a server in the WTG Public Lobby
@@ -193,6 +197,22 @@ func (d *DatabaseService) initDatabase() error {
 		if _, err := d.db.Exec(table); err != nil {
 			return fmt.Errorf("failed to create table: %v", err)
 		}
+	}
+
+	// Add new columns for Kubernetes/Agones integration (if they don't exist)
+	alterTable := `
+	ALTER TABLE game_servers 
+	ADD COLUMN IF NOT EXISTS kubernetes_uid VARCHAR(255),
+	ADD COLUMN IF NOT EXISTS agones_status VARCHAR(50),
+	ADD COLUMN IF NOT EXISTS last_status_sync TIMESTAMP,
+	ADD COLUMN IF NOT EXISTS stopped_at TIMESTAMP,
+	ADD COLUMN IF NOT EXISTS last_heartbeat TIMESTAMP,
+	ADD COLUMN IF NOT EXISTS error_message TEXT,
+	ADD COLUMN IF NOT EXISTS cleanup_at TIMESTAMP,
+	ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
+
+	if _, err := d.db.Exec(alterTable); err != nil {
+		return fmt.Errorf("failed to alter game_servers table: %v", err)
 	}
 
 	// Migration: Add new columns if they don't exist
@@ -772,4 +792,78 @@ func (d *DatabaseService) GetAllBotRoles(guildID string) (adminRoles, modRoles [
 	}
 
 	return adminRoles, modRoles, rows.Err()
+}
+
+// UpdateServerError updates the error message for a server
+func (d *DatabaseService) UpdateServerError(serverName, discordID, errorMessage string) error {
+	if d.localMode {
+		return nil // Local mode doesn't persist errors
+	}
+
+	_, err := d.db.Exec(`
+		UPDATE game_servers 
+		SET error_message = $1, updated_at = NOW() 
+		WHERE name = $2 AND discord_id = $3`,
+		errorMessage, serverName, discordID)
+	return err
+}
+
+// UpdateServerKubernetesInfo updates the Kubernetes UID and Agones status
+func (d *DatabaseService) UpdateServerKubernetesInfo(serverName, discordID, kubernetesUID, agonesStatus string) error {
+	if d.localMode {
+		return nil // Local mode doesn't persist Kubernetes info
+	}
+
+	_, err := d.db.Exec(`
+		UPDATE game_servers 
+		SET kubernetes_uid = $1, agones_status = $2, last_status_sync = NOW(), updated_at = NOW()
+		WHERE name = $3 AND discord_id = $4`,
+		kubernetesUID, agonesStatus, serverName, discordID)
+	return err
+}
+
+// UpdateServerAgonesStatus updates the Agones status and last sync time
+func (d *DatabaseService) UpdateServerAgonesStatus(serverName, discordID, agonesStatus string, syncTime *time.Time) error {
+	if d.localMode {
+		return nil // Local mode doesn't persist Agones status
+	}
+
+	_, err := d.db.Exec(`
+		UPDATE game_servers 
+		SET agones_status = $1, last_status_sync = $2, updated_at = NOW()
+		WHERE name = $3 AND discord_id = $4`,
+		agonesStatus, syncTime, serverName, discordID)
+	return err
+}
+
+// GetServerStatus gets the current status of a server
+func (d *DatabaseService) GetServerStatus(serverName, discordID string) string {
+	if d.localMode {
+		return "unknown" // Local mode doesn't track status
+	}
+
+	var status string
+	err := d.db.QueryRow(`
+		SELECT status FROM game_servers 
+		WHERE name = $1 AND discord_id = $2`,
+		serverName, discordID).Scan(&status)
+	
+	if err != nil {
+		return "unknown"
+	}
+	return status
+}
+
+// UpdateServerAddress updates the server address and port
+func (d *DatabaseService) UpdateServerAddress(serverName, discordID, address string, port int) error {
+	if d.localMode {
+		return nil // Local mode doesn't persist address info
+	}
+
+	_, err := d.db.Exec(`
+		UPDATE game_servers 
+		SET address = $1, port = $2, updated_at = NOW()
+		WHERE name = $3 AND discord_id = $4`,
+		address, port, serverName, discordID)
+	return err
 }
