@@ -35,6 +35,17 @@ jobs:
           mv kubectl $HOME/bin/
           echo "$HOME/bin" >> $GITHUB_PATH
           $HOME/bin/kubectl version --client
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+        env:
+          KUBECONFIG: $HOME/.kube/config
+      - name: Verify cluster access
+        run: |
+          kubectl cluster-info
+          kubectl get ns argo
       - run: echo ${GITHUB_REPOSITORY}
       - run: echo ${GITHUB_REPOSITORY_NAME_PART}
       - run: echo ${GITHUB_SERVER_URL}
@@ -74,6 +85,17 @@ jobs:
           mv kubectl $HOME/bin/
           echo "$HOME/bin" >> $GITHUB_PATH
           $HOME/bin/kubectl version --client
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+        env:
+          KUBECONFIG: $HOME/.kube/config
+      - name: Verify cluster access
+        run: |
+          kubectl cluster-info
+          kubectl get ns argo
       - name: development
         run: |
           echo "Install argo"
@@ -110,6 +132,17 @@ jobs:
           mv kubectl $HOME/bin/
           echo "$HOME/bin" >> $GITHUB_PATH
           $HOME/bin/kubectl version --client
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+        env:
+          KUBECONFIG: $HOME/.kube/config
+      - name: Verify cluster access
+        run: |
+          kubectl cluster-info
+          kubectl get ns argo
       - name: staging
         run: |
           echo "Install argo"
@@ -146,6 +179,17 @@ jobs:
           mv kubectl $HOME/bin/
           echo "$HOME/bin" >> $GITHUB_PATH
           $HOME/bin/kubectl version --client
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+        env:
+          KUBECONFIG: $HOME/.kube/config
+      - name: Verify cluster access
+        run: |
+          kubectl cluster-info
+          kubectl get ns argo
       - name: release
         run: |
           echo "Install argo"
