@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-06-29
+
+### Added
+- **Agones GameServer Integration**: Full integration with Agones for Kubernetes-native game server management
+- **Real-time Status Monitoring**: Live GameServer status tracking via Kubernetes APIs
+- **Fleet-based Server Allocation**: Proper GameServer allocation using Agones Fleets (free-tier, premium-tier)
+- **Enhanced User Notifications**: DM notifications at each deployment stage with detailed feedback
+- **Live Connection Info**: Automatic delivery of server IP:Port as soon as servers are ready
+- **Advanced Diagnostics**: Real-time server health checks and troubleshooting commands
+- **Kubernetes UID Tracking**: Unique server identification for accurate lifecycle management
+- **Enhanced Database Schema**: New columns for Agones/Kubernetes integration
+  - `kubernetes_uid` - Unique GameServer identifier  
+  - `agones_status` - Live Agones GameServer status
+  - `last_status_sync` - Status synchronization timestamp
+  - `stopped_at`, `cleanup_at` - Lifecycle tracking
+  - `error_message` - Detailed error information
+
+### New Services
+- **AgonesService**: GameServer allocation, status monitoring, and Fleet management
+- **NotificationService**: User DM notifications with deployment stage tracking
+- **EnhancedServerService**: Orchestrates server lifecycle with live status integration
+
+### Enhanced Commands
+- **servers**: Shows live connection info, real-time status, and detailed server information
+- **diagnostics**: Live Kubernetes/Agones status checks with connectivity verification
+- **server_management**: Fleet-based allocation with comprehensive user feedback
+
+### Changed
+- **Server Creation Workflow**: Now uses Agones GameServerAllocation API instead of direct creation
+- **Status Display**: Real-time status from Kubernetes instead of database-only tracking
+- **Error Handling**: Enhanced error messages with actionable troubleshooting guidance
+- **Notification System**: Proactive DM updates throughout server deployment process
+
+### Dependencies
+- Added `agones.dev/agones v1.38.0` for GameServer management
+- Added `k8s.io/client-go v0.28.4` for Kubernetes API integration
+- Added `k8s.io/apimachinery v0.28.4` for Kubernetes object handling
+
+### Technical Improvements
+- Fleet-based architecture following Agones best practices
+- Proper Kubernetes controller integration (no bypassing)
+- Live API queries for accurate status reporting
+- Enhanced command context with new service dependencies
+- Comprehensive database migration for new schema
+
 ## [0.1.11] - 2025-06-29
 
 ### Added
