@@ -4,6 +4,12 @@ metadata:
   name: agis-bot
   labels:
     app: agis-bot
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+  annotations:
+    secret.reloader.stakater.com/reload: agis-bot-secrets
+    {{- range $key, $value := .Values.deploymentAnnotations }}
+    {{- $key | nindent 4 }}: {{ $value | quote }}
+    {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -13,6 +19,15 @@ spec:
     metadata:
       labels:
         app: agis-bot
+      annotations:
+        # Prometheus monitoring
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.service.port }}"
+        prometheus.io/path: "/metrics"
+        # Datadog monitoring
+        ad.datadoghq.com/agis-bot.check_names: '["agis_bot"]'
+        ad.datadoghq.com/agis-bot.init_configs: '[{}]'
+        ad.datadoghq.com/agis-bot.instances: '[{"host":"%%host%%","port":"{{ .Values.service.port }}","metrics_path":"/metrics"}]'
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -128,3 +143,28 @@ spec:
                   name: agis-bot-secrets
                   key: LOG_CHANNEL_AUDIT
                   optional: true
+          # Health and readiness probes for monitoring
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          # Resource limits for better monitoring and autoscaling
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"

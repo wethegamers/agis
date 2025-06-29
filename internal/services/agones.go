@@ -71,10 +71,10 @@ func NewAgonesService() (*AgonesService, error) {
 		return nil, fmt.Errorf("failed to create Agones client: %v", err)
 	}
 
-	// Get namespace from environment or default to gameservers
+	// Get namespace from environment or default to agones-dev for development
 	namespace := os.Getenv("AGONES_NAMESPACE")
 	if namespace == "" {
-		namespace = "gameservers"
+		namespace = "agones-dev"
 	}
 
 	return &AgonesService{
@@ -239,15 +239,15 @@ func (a *AgonesService) WatchGameServerStatus(ctx context.Context, uid string, c
 func (a *AgonesService) getFleetName(gameType string) string {
 	switch gameType {
 	case "minecraft":
-		return "free-tier-fleet" // or premium-tier-fleet based on user tier
+		return "wtg-free-fleet" // or wtg-premium-fleet based on user tier
 	case "cs2":
-		return "premium-tier-fleet"
+		return "wtg-premium-fleet"
 	case "terraria":
-		return "free-tier-fleet"
+		return "wtg-free-fleet"
 	case "gmod":
-		return "premium-tier-fleet"
+		return "wtg-premium-fleet"
 	default:
-		return "free-tier-fleet"
+		return "wtg-free-fleet"
 	}
 }
 

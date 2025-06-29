@@ -1,8 +1,8 @@
 package main
 
 import (
+	"context"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,12 +10,12 @@ import (
 
 	"agis-bot/internal/bot/commands"
 	"agis-bot/internal/config"
+	"agis-bot/internal/http"
 	"agis-bot/internal/services"
 
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -70,12 +70,11 @@ func main() {
 	prometheus.MustRegister(activeUsers)
 	prometheus.MustRegister(databaseOperations)
 
-	// Start metrics server
+	// Start HTTP server with metrics, health checks, and info endpoints
+	httpServer := http.NewServer()
 	go func() {
-		http.Handle("/metrics", promhttp.Handler())
-		log.Println("📊 Metrics server starting on :8080")
-		if err := http.ListenAndServe(":8080", nil); err != nil {
-			log.Printf("Failed to start metrics server: %v", err)
+		if err := httpServer.Start(); err != nil {
+			log.Printf("Failed to start HTTP server: %v", err)
 		}
 	}()
 
@@ -179,6 +178,15 @@ func main() {
 	<-stop
 
 	log.Println("🛑 Agis bot shutting down...")
+	
+	// Graceful shutdown with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	
+	// Shutdown HTTP server
+	if err := httpServer.Stop(ctx); err != nil {
+		log.Printf("HTTP server shutdown error: %v", err)
+	}
 }
 
 func ready(s *discordgo.Session, event *discordgo.Ready) {
