@@ -22,16 +22,16 @@ func (c *HelpCommand) RequiredPermission() bot.Permission {
 
 func (c *HelpCommand) Execute(ctx *CommandContext) error {
 	embed := &discordgo.MessageEmbed{
-		Title:       "🤖 Agis - WTG Cluster Management Bot",
-		Description: "Your gateway to the We The Gamers platform! Available commands:",
+		Title:       "🤖 Agis - Agones GameServer Management Bot",
+		Description: "Your gateway to the We The Gamers platform! Live Kubernetes integration with real-time server status:",
 		Color:       0xffd700,
 	}
 
 	// Add fields based on user permission level
 	userFields := []*discordgo.MessageEmbedField{
 		{
-			Name:   "**🎮 Quick Start**",
-			Value:  "`help` - Show this help menu\n`credits` - Check your balance\n`credits earn` - 🎥 **Watch ads for 50-150 credits each!**\n`create minecraft` - Deploy your first server",
+			Name:   "**🤖 Quick Start**",
+			Value:  "`help` - Show this help menu\n`manual` or `man` - **Complete documentation with examples**\n`credits` - Check your balance\n`credits earn` - 🎥 **Watch ads for 50-150 credits each!**\n`create minecraft` - Deploy your first server",
 			Inline: false,
 		},
 		{
@@ -41,12 +41,12 @@ func (c *HelpCommand) Execute(ctx *CommandContext) error {
 		},
 		{
 			Name:   "**🎮 Server Management**",
-			Value:  "`servers` - List your servers\n`create <game> [name]` - Deploy new server (minecraft/cs2/terraria/gmod)\n`stop <server>` - Stop server to save credits\n`delete <server>` - Delete your own server permanently\n`export <server>` - Export save files before cleanup",
+			Value:  "`servers` - List your servers with live Kubernetes status\n`create <game> [name]` - Deploy new Agones GameServer (minecraft/cs2/terraria/gmod)\n`stop <server>` - Stop server to save credits\n`delete <server>` - Delete your own server permanently\n`export <server>` - Export save files before cleanup",
 			Inline: false,
 		},
 		{
 			Name:   "**🔧 Diagnostics & Testing**",
-			Value:  "`diagnostics <server>` - Complete server health check\n`ping [server]` - Test connectivity to bot or server",
+			Value:  "`diagnostics <server>` - Complete server health check with Kubernetes metrics\n`ping [server]` - Test connectivity to bot or server",
 			Inline: false,
 		},
 		{
@@ -67,7 +67,7 @@ func (c *HelpCommand) Execute(ctx *CommandContext) error {
 	adminFields := []*discordgo.MessageEmbedField{
 		{
 			Name:   "**⚙️ Admin Commands**",
-			Value:  "`admin status` - Backend cluster health and status\n`admin pods` - List Kubernetes pods\n`admin nodes` - List cluster nodes\n`admin-restart` - Restart the AGIS bot\n`admin-restart confirm` - Confirm restart\n`admin-restart confirm --force` - Force restart",
+			Value:  "`admin status` - Agones & Kubernetes cluster health status\n`admin pods` - List Kubernetes pods across namespaces\n`admin nodes` - List cluster nodes and resource usage\n`log-channel` - Configure Discord logging channels\n`admin-restart` - Restart the AGIS bot\n`admin-restart confirm` - Confirm restart\n`admin-restart confirm --force` - Force restart",
 			Inline: false,
 		},
 		{

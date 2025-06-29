@@ -85,6 +85,8 @@ func NewCommandHandler(cfg *config.Config, db *services.DatabaseService, logger 
 func (h *CommandHandler) registerCommands() {
 	// User commands
 	h.Register(&HelpCommand{})
+	h.Register(&ManualCommand{})
+	h.Register(&ManCommand{})
 	h.Register(&CreditsCommand{})
 	h.Register(&CreditsEarnCommand{})
 	h.Register(&DailyCommand{})
