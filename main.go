@@ -162,6 +162,8 @@ func main() {
 		log.Printf("⚠️ Failed to open Discord session: %v (continuing without Discord)", err)
 		// Continue without Discord for testing metrics
 	} else {
+		// Set Discord session for notification service
+		commandHandler.SetDiscordSession(session)
 		defer func() {
 			if err := session.Close(); err != nil {
 				log.Printf("Error closing Discord session: %v", err)
