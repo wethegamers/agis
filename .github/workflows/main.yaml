@@ -37,6 +37,13 @@ jobs:
           gunzip argo-linux-amd64.gz
           chmod +x argo-linux-amd64
           echo "commit sha ${GITHUB_SHA}"
+          
+          echo "Checking Kubernetes connectivity..."
+          kubectl get nodes
+          kubectl get namespace ${ARGO_NAMESPACE}
+          kubectl get pods -n ${ARGO_NAMESPACE}
+          
+          echo "Submitting Argo workflow..."
           ./argo-linux-amd64 version --short
           ./argo-linux-amd64 submit .argo/publish.yaml \
             --generate-name="${GITHUB_REPOSITORY_NAME_PART}-publish-${GITHUB_SHA_SHORT}-" \
@@ -63,6 +70,13 @@ jobs:
           gunzip argo-linux-amd64.gz
           chmod +x argo-linux-amd64
           echo "commit sha ${GITHUB_SHA}"
+          
+          echo "Checking Kubernetes connectivity..."
+          kubectl get nodes
+          kubectl get namespace ${ARGO_NAMESPACE}
+          kubectl get pods -n ${ARGO_NAMESPACE}
+          
+          echo "Submitting Argo workflow..."
           ./argo-linux-amd64 version --short
           ./argo-linux-amd64 submit .argo/deploy.yaml \
             --generate-name="${GITHUB_REPOSITORY_NAME_PART}-development-${GITHUB_SHA_SHORT}-" \
@@ -89,6 +103,13 @@ jobs:
           gunzip argo-linux-amd64.gz
           chmod +x argo-linux-amd64
           echo "commit sha ${GITHUB_SHA}"
+          
+          echo "Checking Kubernetes connectivity..."
+          kubectl get nodes
+          kubectl get namespace ${ARGO_NAMESPACE}
+          kubectl get pods -n ${ARGO_NAMESPACE}
+          
+          echo "Submitting Argo workflow..."
           ./argo-linux-amd64 version --short
           ./argo-linux-amd64 submit .argo/deploy.yaml \
             --generate-name="${GITHUB_REPOSITORY_NAME_PART}-staging-${GITHUB_SHA_SHORT}-" \
@@ -115,6 +136,13 @@ jobs:
           gunzip argo-linux-amd64.gz
           chmod +x argo-linux-amd64
           echo "commit sha ${GITHUB_SHA}"
+          
+          echo "Checking Kubernetes connectivity..."
+          kubectl get nodes
+          kubectl get namespace ${ARGO_NAMESPACE}
+          kubectl get pods -n ${ARGO_NAMESPACE}
+          
+          echo "Submitting Argo workflow..."
           ./argo-linux-amd64 version --short
           ./argo-linux-amd64 submit .argo/release.yaml \
             --generate-name="${GITHUB_REPOSITORY_NAME_PART}-release-${GITHUB_SHA_SHORT}-" \
