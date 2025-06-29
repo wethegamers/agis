@@ -1,3 +1,9 @@
+# AGIS Bot
+
+Advanced Gaming Integration System (AGIS) Bot for Discord - A Kubernetes-native Discord bot with Agones GameServer management capabilities.
+
+<!-- Build triggered: 2025-06-29 20:24 -->
+
 # agis-bot
 
 A Go-based Discord bot for the WTG platform.
