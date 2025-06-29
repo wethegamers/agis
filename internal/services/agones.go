@@ -207,6 +207,18 @@ func (a *AgonesService) DeleteGameServer(ctx context.Context, name string) error
 	return a.agonesClient.AgonesV1().GameServers(a.namespace).Delete(ctx, name, metav1.DeleteOptions{})
 }
 
+// DeleteGameServerByUID deletes a GameServer by UID
+func (a *AgonesService) DeleteGameServerByUID(ctx context.Context, uid string) error {
+	// First get the GameServer to find its name
+	gsInfo, err := a.GetGameServerByUID(ctx, uid)
+	if err != nil {
+		return fmt.Errorf("failed to find GameServer with UID %s: %v", uid, err)
+	}
+	
+	// Delete by name
+	return a.DeleteGameServer(ctx, gsInfo.Name)
+}
+
 // GetGameServerStatus checks the current status of a GameServer
 func (a *AgonesService) GetGameServerStatus(ctx context.Context, uid string) (*GameServerInfo, error) {
 	return a.GetGameServerByUID(ctx, uid)

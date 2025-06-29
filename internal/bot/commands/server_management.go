@@ -34,7 +34,7 @@ func (c *CreateServerCommand) Execute(ctx *CommandContext) error {
 			Fields: []*discordgo.MessageEmbedField{
 				{
 					Name:  "Usage",
-					Value: "`create <game-type> [server-name]`",
+					Value: "`create <game-type> [server-name] [--here]`",
 				},
 				{
 					Name:  "Available Games",
@@ -42,7 +42,11 @@ func (c *CreateServerCommand) Execute(ctx *CommandContext) error {
 				},
 				{
 					Name:  "Examples",
-					Value: "`create minecraft`\n`create cs2 my-cs-server`\n`create terraria survival-world`",
+					Value: "`create minecraft`\n`create cs2 my-cs-server`\n`create terraria survival-world --here`",
+				},
+				{
+					Name:  "Flags",
+					Value: "• `--here` - Show all updates in this channel instead of DMs",
 				},
 				{
 					Name:  "💰 Costs",
@@ -61,10 +65,27 @@ func (c *CreateServerCommand) Execute(ctx *CommandContext) error {
 		return err
 	}
 
-	gameType := strings.ToLower(ctx.Args[0])
-	serverName := fmt.Sprintf("%s-%s", gameType, ctx.Message.Author.Username)
-	if len(ctx.Args) > 1 {
-		serverName = ctx.Args[1]
+	// Parse arguments and flags
+	var gameType, serverName string
+	var notifyInChannel bool
+	
+	args := make([]string, 0)
+	for _, arg := range ctx.Args {
+		if arg == "--here" {
+			notifyInChannel = true
+		} else {
+			args = append(args, arg)
+		}
+	}
+	
+	if len(args) == 0 {
+		return fmt.Errorf("game type is required")
+	}
+	
+	gameType = strings.ToLower(args[0])
+	serverName = fmt.Sprintf("%s-%s", gameType, ctx.Message.Author.Username)
+	if len(args) > 1 {
+		serverName = args[1]
 	}
 
 	// Validate game type
@@ -156,7 +177,11 @@ func (c *CreateServerCommand) Execute(ctx *CommandContext) error {
 		}
 	} else {
 		// Use enhanced service for full lifecycle management
-		_, err = enhancedService.CreateGameServer(ctx.Context, ctx.Message.Author.ID, gameType, serverName, costPerHour)
+		var channelID string
+		if notifyInChannel {
+			channelID = ctx.Message.ChannelID
+		}
+		_, err = enhancedService.CreateGameServer(ctx.Context, ctx.Message.Author.ID, gameType, serverName, costPerHour, channelID)
 		if err != nil {
 			return fmt.Errorf("failed to create server: %v", err)
 		}

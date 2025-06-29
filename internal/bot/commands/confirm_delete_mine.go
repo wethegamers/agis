@@ -93,8 +93,8 @@ func (c *ConfirmDeleteMineCommand) Execute(ctx *CommandContext) error {
 		}
 	}
 
-	// Delete the server
-	err = ctx.DB.DeleteGameServer(server.ID)
+	// Delete the server using EnhancedServerService (handles both DB and Kubernetes)
+	err = ctx.EnhancedServer.DeleteGameServer(ctx.Context, server.Name, ctx.Message.Author.ID)
 	if err != nil {
 		// Log deletion failure
 		if ctx.Logger != nil {

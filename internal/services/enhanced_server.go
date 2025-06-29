@@ -26,7 +26,7 @@ func NewEnhancedServerService(db *DatabaseService, agones *AgonesService, notifi
 }
 
 // CreateGameServer creates a new game server with full lifecycle management
-func (e *EnhancedServerService) CreateGameServer(ctx context.Context, userID, gameType, serverName string, costPerHour int) (*GameServer, error) {
+func (e *EnhancedServerService) CreateGameServer(ctx context.Context, userID, gameType, serverName string, costPerHour int, channelID string) (*GameServer, error) {
 	// Create database record first
 	server := &GameServer{
 		DiscordID:      userID,
@@ -52,16 +52,17 @@ func (e *EnhancedServerService) CreateGameServer(ctx context.Context, userID, ga
 		PreviousStatus: "",
 		NewStatus:      "Pending",
 		GameType:       gameType,
+		ChannelID:      channelID,
 	})
 
 	// Start async allocation process
-	go e.allocateServerAsync(ctx, server)
+	go e.allocateServerAsync(ctx, server, channelID)
 
 	return server, nil
 }
 
 // allocateServerAsync handles the server allocation process asynchronously
-func (e *EnhancedServerService) allocateServerAsync(ctx context.Context, server *GameServer) {
+func (e *EnhancedServerService) allocateServerAsync(ctx context.Context, server *GameServer, channelID string) {
 	log.Printf("Starting allocation for server %s (user: %s)", server.Name, server.DiscordID)
 
 	// Update status to creating
@@ -75,6 +76,7 @@ func (e *EnhancedServerService) allocateServerAsync(ctx context.Context, server 
 			PreviousStatus: "pending",
 			NewStatus:      "Creating",
 			GameType:       server.GameType,
+			ChannelID:      channelID,
 		})
 	}
 
@@ -88,7 +90,11 @@ func (e *EnhancedServerService) allocateServerAsync(ctx context.Context, server 
 		e.db.UpdateServerError(server.Name, server.DiscordID, err.Error())
 		
 		// Notify user of error
-		e.notifications.NotifyServerError(server.DiscordID, server.Name, server.GameType, err.Error())
+		if channelID != "" {
+			e.notifications.NotifyServerErrorInChannel(server.DiscordID, server.Name, server.GameType, err.Error(), channelID)
+		} else {
+			e.notifications.NotifyServerError(server.DiscordID, server.Name, server.GameType, err.Error())
+		}
 		return
 	}
 
@@ -101,11 +107,11 @@ func (e *EnhancedServerService) allocateServerAsync(ctx context.Context, server 
 	}
 
 	// Start monitoring the GameServer status
-	e.monitorGameServerStatus(ctx, server, agonesInfo.UID)
+	e.monitorGameServerStatus(ctx, server, agonesInfo.UID, channelID)
 }
 
 // monitorGameServerStatus monitors a GameServer until it's ready or fails
-func (e *EnhancedServerService) monitorGameServerStatus(ctx context.Context, server *GameServer, uid string) {
+func (e *EnhancedServerService) monitorGameServerStatus(ctx context.Context, server *GameServer, uid string, channelID string) {
 	log.Printf("Starting status monitoring for GameServer %s (UID: %s)", server.Name, uid)
 
 	ticker := time.NewTicker(10 * time.Second)
@@ -121,7 +127,7 @@ func (e *EnhancedServerService) monitorGameServerStatus(ctx context.Context, ser
 			return
 		case <-timeout:
 			log.Printf("Timeout reached for GameServer %s", server.Name)
-			e.handleServerTimeout(server)
+			e.handleServerTimeout(server, channelID)
 			return
 		case <-ticker.C:
 			info, err := e.agones.GetGameServerByUID(ctx, uid)
@@ -148,6 +154,7 @@ func (e *EnhancedServerService) monitorGameServerStatus(ctx context.Context, ser
 					PreviousStatus: e.db.GetServerStatus(server.Name, server.DiscordID),
 					NewStatus:      statusString,
 					GameType:       server.GameType,
+					ChannelID:      channelID,
 				}
 
 				// If server is ready, include connection info
@@ -180,14 +187,19 @@ func (e *EnhancedServerService) monitorGameServerStatus(ctx context.Context, ser
 }
 
 // handleServerTimeout handles when a server takes too long to become ready
-func (e *EnhancedServerService) handleServerTimeout(server *GameServer) {
+func (e *EnhancedServerService) handleServerTimeout(server *GameServer, channelID string) {
 	log.Printf("GameServer %s timed out during allocation", server.Name)
 	
 	e.db.UpdateServerStatus(server.Name, server.DiscordID, "error")
 	e.db.UpdateServerError(server.Name, server.DiscordID, "Server allocation timed out after 10 minutes")
 	
-	e.notifications.NotifyServerError(server.DiscordID, server.Name, server.GameType, 
-		"Server took too long to start up. Please try again or contact support.")
+	if channelID != "" {
+		e.notifications.NotifyServerErrorInChannel(server.DiscordID, server.Name, server.GameType, 
+			"Server took too long to start up. Please try again or contact support.", channelID)
+	} else {
+		e.notifications.NotifyServerError(server.DiscordID, server.Name, server.GameType, 
+			"Server took too long to start up. Please try again or contact support.")
+	}
 }
 
 // mapAgonesStatusToUserFriendly converts Agones status to user-friendly status
@@ -295,10 +307,20 @@ func (e *EnhancedServerService) DeleteGameServer(ctx context.Context, serverName
 
 	// Delete from Kubernetes if it exists
 	if server.KubernetesUID != "" {
-		err = e.agones.DeleteGameServer(ctx, server.Name)
+		// First get the actual GameServer info by UID to get the correct Kubernetes name
+		gsInfo, err := e.agones.GetGameServerByUID(ctx, server.KubernetesUID)
 		if err != nil {
-			log.Printf("Failed to delete GameServer from Kubernetes: %v", err)
-			// Continue with database deletion even if Kubernetes deletion fails
+			log.Printf("Failed to get GameServer by UID %s: %v", server.KubernetesUID, err)
+			// Continue with database deletion even if we can't find the GameServer
+		} else {
+			// Delete using the actual Kubernetes GameServer name
+			err = e.agones.DeleteGameServer(ctx, gsInfo.Name)
+			if err != nil {
+				log.Printf("Failed to delete GameServer %s from Kubernetes: %v", gsInfo.Name, err)
+				// Continue with database deletion even if Kubernetes deletion fails
+			} else {
+				log.Printf("Successfully deleted GameServer %s from Kubernetes", gsInfo.Name)
+			}
 		}
 	}
 

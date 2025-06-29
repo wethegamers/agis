@@ -25,6 +25,7 @@ type ServerStatusUpdate struct {
 	Port           int32
 	GameType       string
 	ErrorMessage   string
+	ChannelID      string // If provided, send notification to this channel instead of DM
 }
 
 // NewNotificationService creates a new notification service
@@ -41,13 +42,24 @@ func (n *NotificationService) SetDiscordSession(session *discordgo.Session) {
 	n.discord = session
 }
 
-// NotifyServerStatusChange sends a DM to the user about server status changes
+// NotifyServerStatusChange sends a notification to the user about server status changes
 func (n *NotificationService) NotifyServerStatusChange(update ServerStatusUpdate) error {
-	// Create DM channel with user
-	channel, err := n.discord.UserChannelCreate(update.UserID)
-	if err != nil {
-		log.Printf("Failed to create DM channel for user %s: %v", update.UserID, err)
-		return err
+	var targetChannelID string
+	var channelType string
+	
+	// Determine target channel - use provided channel ID or create DM
+	if update.ChannelID != "" {
+		targetChannelID = update.ChannelID
+		channelType = "channel"
+	} else {
+		// Create DM channel with user
+		channel, err := n.discord.UserChannelCreate(update.UserID)
+		if err != nil {
+			log.Printf("Failed to create DM channel for user %s: %v", update.UserID, err)
+			return err
+		}
+		targetChannelID = channel.ID
+		channelType = "DM"
 	}
 
 	var embed *discordgo.MessageEmbed
@@ -69,16 +81,16 @@ func (n *NotificationService) NotifyServerStatusChange(update ServerStatusUpdate
 		embed = n.createGenericUpdateEmbed(update)
 	}
 
-	_, err = n.discord.ChannelMessageSendEmbed(channel.ID, embed)
+	_, err := n.discord.ChannelMessageSendEmbed(targetChannelID, embed)
 	if err != nil {
-		log.Printf("Failed to send DM to user %s: %v", update.UserID, err)
+		log.Printf("Failed to send %s notification to user %s: %v", channelType, update.UserID, err)
 		return err
 	}
 
 	// Log the notification
 	if n.logging != nil {
-		log.Printf("Sent status notification to user %s for server %s: %s -> %s", 
-			update.UserID, update.ServerName, update.PreviousStatus, update.NewStatus)
+		log.Printf("Sent status notification to user %s for server %s via %s: %s -> %s", 
+			update.UserID, update.ServerName, channelType, update.PreviousStatus, update.NewStatus)
 	}
 
 	return nil
@@ -313,5 +325,18 @@ func (n *NotificationService) NotifyServerError(userID, serverName, gameType, er
 		NewStatus:      "Error",
 		GameType:       gameType,
 		ErrorMessage:   errorMessage,
+	})
+}
+
+// NotifyServerErrorInChannel is a convenience method for when a server encounters an error with channel notification
+func (n *NotificationService) NotifyServerErrorInChannel(userID, serverName, gameType, errorMessage, channelID string) error {
+	return n.NotifyServerStatusChange(ServerStatusUpdate{
+		ServerName:     serverName,
+		UserID:         userID,
+		PreviousStatus: "Creating",
+		NewStatus:      "Error",
+		GameType:       gameType,
+		ErrorMessage:   errorMessage,
+		ChannelID:      channelID,
 	})
 }
