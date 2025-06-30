@@ -2,39 +2,59 @@
 
 Advanced Gaming Integration System (AGIS) Bot for Discord - A Kubernetes-native Discord bot with Agones GameServer management capabilities.
 
-<!-- Build triggered: 2025-06-29 20:24 -->
+## Overview
 
-# agis-bot
-
-A Go-based Discord bot for the WTG platform.
+A Go-based Discord bot for the WTG platform with comprehensive game server management, role-based permissions, and cloud-native deployment.
 
 ## Features
-- Role-based permissions (admin, mod, user)
-- Admin, mod, and user command sets
-- Public lobby management
-- Economy system
-- Game server management (Minecraft, CS2, Terraria, GMod)
-- Diagnostics and metrics
-- Database integration
-- Discord rich embeds and context-aware help
 
-## Getting Started
-1. Configure environment variables (`.env` or use Vault-managed secrets via ExternalSecret in Kubernetes)
-2. Set up PostgreSQL database (deployed via Bitnami Helm chart; see GitOps repo)
-3. Create Discord bot application
-4. Build and run the bot (see CI/CD and Argo Workflows for automated deployment)
+- **Game Server Management**: Agones GameServer integration for Minecraft, CS2, Terraria, GMod
+- **Role-Based Access**: Admin, moderator, and user command sets with proper permissions
+- **Public Lobby Management**: Community interaction and server coordination
+- **Economy System**: User balance tracking and transaction management  
+- **Database Integration**: PostgreSQL backend with automated migrations
+- **Rich Discord Integration**: Embeds, context-aware help, and interactive commands
+- **Cloud-Native**: Kubernetes deployment with GitOps, CI/CD, and secrets management
 
-## Deployment
-- Use the provided Helm chart for Kubernetes deployment (see `charts/agis-bot`)
-- All secrets (including `DISCORD_TOKEN` and DB credentials) are managed via Vault and ExternalSecrets
-- ArgoCD manages deployment for dev, staging, and prod environments
-- Images are built and published via Argo Workflows, triggered by GitHub Actions
-- See `.argo/` for Argo Workflow templates
+## Project Structure
+
+```
+├── .argo/                 # Argo Workflows for CI/CD
+├── .github/               # GitHub Actions workflows
+├── charts/                # Helm chart for Kubernetes deployment
+├── cmd/                   # Application entrypoints
+├── internal/              # Internal Go packages
+├── scripts/               # Build and deployment scripts
+├── deployments/           # Additional deployment resources
+│   ├── github-discord-webhook-proxy.py
+│   └── Dockerfile.webhook-proxy
+└── docs/                  # Documentation
+    ├── deployment/        # Deployment and completion docs
+    └── webhook-setup/     # Webhook configuration guides
+```
+
+## Quick Start
+
+### Local Development
+1. Copy `.env.example` to `.env` and configure
+2. Set up PostgreSQL database
+3. Run: `go run main.go`
+
+### Kubernetes Deployment
+- **Production**: Managed via ArgoCD with GitOps
+- **Development**: Use Helm chart in `charts/agis-bot/`
+- **Secrets**: Vault integration with ExternalSecrets
+
+## CI/CD Pipeline
+
+- **GitHub Actions**: Triggers on main branch pushes
+- **Argo Workflows**: Container builds and multi-environment deployments
+- **Discord Notifications**: Real-time CI/CD status updates
+- **Environments**: Development → Staging → Production
 
 ## Documentation
-- Setup guide: `README.md`
-- Environment config: `.env.example` (for local dev; in-cluster uses Vault)
-- All commands documented in the help system
-# RBAC fix applied - Sun Jun 29 08:47:54 PM BST 2025
-# CI/CD fix applied - kubeconfig secret configured
-# Trigger new workflow after fixing Git checkout template
+
+- **Commands**: See `COMMANDS.md` or use `/help` in Discord
+- **Changelog**: `CHANGELOG.md`
+- **Setup Guides**: `docs/webhook-setup/`
+- **Deployment Status**: `docs/deployment/`
