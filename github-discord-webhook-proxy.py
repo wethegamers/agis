@@ -10,7 +10,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import os
 from datetime import datetime
 
-DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1389136910252904509/m84UqkOAU5UJjnPMWdJ17L5CJ-YzKaSzuD6QSjQw9_RuL-O9abqbLK2_VE2Krsj9wLW_"
+DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL', "https://discord.com/api/webhooks/1389136910252904509/m84UqkOAU5UJjnPMWdJ17L5CJ-YzKaSzuD6QSjQw9_RuL-O9abqbLK2_VE2Krsj9wLW_")
 
 class GitHubToDiscordHandler(BaseHTTPRequestHandler):
     def do_POST(self):

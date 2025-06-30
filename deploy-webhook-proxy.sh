@@ -5,7 +5,7 @@ echo "🚀 Deploying GitHub to Discord Webhook Proxy"
 
 # Build and push the container image
 echo "📦 Building webhook proxy container..."
-docker build -f webhook-proxy.Dockerfile -t ghcr.io/wethegamers/github-discord-proxy:latest .
+docker build -f Dockerfile.webhook-proxy -t ghcr.io/wethegamers/github-discord-proxy:latest .
 
 echo "📤 Pushing to container registry..."
 docker push ghcr.io/wethegamers/github-discord-proxy:latest
