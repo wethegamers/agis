@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-discord-proxy
+  namespace: default
+  labels:
+    app: github-discord-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: github-discord-proxy
+  template:
+    metadata:
+      labels:
+        app: github-discord-proxy
+    spec:
+      containers:
+      - name: webhook-proxy
+        image: ghcr.io/wethegamers/github-discord-proxy:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DISCORD_WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: ci-secrets
+              key: DISCORD_WEBHOOK_URL
+        - name: PORT
+          value: "8080"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: github-discord-proxy
+  namespace: default
+  labels:
+    app: github-discord-proxy
+spec:
+  selector:
+    app: github-discord-proxy
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: github-discord-proxy
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - github-webhook.euw.wtgg.org
+    secretName: github-webhook-tls
+  rules:
+  - host: github-webhook.euw.wtgg.org
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: github-discord-proxy
+            port:
+              number: 80
