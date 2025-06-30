@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
+        with:
+          clean: true
       - name: Inject slug/short variables
         uses: rlespinasse/github-slug-action@v4
       - name: Set up kubeconfig
@@ -42,7 +44,7 @@ jobs:
           chmod +x argo-linux-amd64
           echo "commit sha ${GITHUB_SHA}"
           ./argo-linux-amd64 version --short
-          ./argo-linux-amd64 submit .argo/publish.yaml \
+          ./argo-linux-amd64 submit $(pwd)/.argo/publish.yaml \
             --generate-name="${GITHUB_REPOSITORY_NAME_PART}-publish-${GITHUB_SHA_SHORT}-" \
             -p appName="${GITHUB_REPOSITORY_NAME_PART}" \
             -p branch="${GITHUB_REF_NAME}" \
@@ -96,6 +98,8 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
+        with:
+          clean: true
       - name: Inject slug/short variables
         uses: rlespinasse/github-slug-action@v4
       - name: Set up kubeconfig
@@ -115,7 +119,17 @@ jobs:
           chmod +x argo-linux-amd64
           echo "commit sha ${GITHUB_SHA}"
           ./argo-linux-amd64 version --short
-          ./argo-linux-amd64 submit .argo/deploy.yaml \
+          
+          # Debug: Check workspace and file existence
+          echo "=== Debugging workspace ==="
+          pwd
+          ls -la
+          echo "=== Checking .argo directory ==="
+          ls -la .argo/
+          echo "=== Checking deploy.yaml content ==="
+          cat .argo/deploy.yaml | head -20
+          
+          ./argo-linux-amd64 submit $(pwd)/.argo/deploy.yaml \
             --generate-name="${GITHUB_REPOSITORY_NAME_PART}-development-${GITHUB_SHA_SHORT}-" \
             -p appName="${GITHUB_REPOSITORY_NAME_PART}" \
             -p branch="${GITHUB_REF_NAME}" \
@@ -168,6 +182,8 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
+        with:
+          clean: true
       - name: Inject slug/short variables
         uses: rlespinasse/github-slug-action@v4
       - name: Set up kubeconfig
@@ -187,7 +203,7 @@ jobs:
           chmod +x argo-linux-amd64
           echo "commit sha ${GITHUB_SHA}"
           ./argo-linux-amd64 version --short
-          ./argo-linux-amd64 submit .argo/deploy.yaml \
+          ./argo-linux-amd64 submit $(pwd)/.argo/deploy.yaml \
             --generate-name="${GITHUB_REPOSITORY_NAME_PART}-staging-${GITHUB_SHA_SHORT}-" \
             -p appName="${GITHUB_REPOSITORY_NAME_PART}" \
             -p branch="${GITHUB_REF_NAME}" \
@@ -240,6 +256,8 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
+        with:
+          clean: true
       - name: Inject slug/short variables
         uses: rlespinasse/github-slug-action@v4
       # todo need to look repositoryGitURL, this needs to be overrideable from here and respected on the template side for both repositories
@@ -260,7 +278,7 @@ jobs:
           chmod +x argo-linux-amd64
           echo "commit sha ${GITHUB_SHA}"
           ./argo-linux-amd64 version --short
-          ./argo-linux-amd64 submit .argo/release.yaml \
+          ./argo-linux-amd64 submit $(pwd)/.argo/release.yaml \
             --generate-name="${GITHUB_REPOSITORY_NAME_PART}-release-${GITHUB_SHA_SHORT}-" \
             -p appName="${GITHUB_REPOSITORY_NAME_PART}" \
             -p branch="${GITHUB_REF_NAME}" \
