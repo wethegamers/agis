@@ -68,6 +68,44 @@ jobs:
             -p shortSha="${GITHUB_SHA_SHORT}" \
             -p chartDir="charts/${GITHUB_REPOSITORY_NAME_PART}" \
             --wait --log
+      - name: Discord notification - Publish success
+        if: success()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "🚀 agis-bot Container Published",
+                "description": "Container build and publish completed successfully",
+                "color": 3066993,
+                "fields": [
+                  {"name": "Repository", "value": "'"${GITHUB_REPOSITORY}"'", "inline": true},
+                  {"name": "Branch", "value": "'"${GITHUB_REF_NAME}"'", "inline": true},
+                  {"name": "Commit", "value": "'"${GITHUB_SHA_SHORT}"'", "inline": true},
+                  {"name": "Image", "value": "ghcr.io/'"${GITHUB_REPOSITORY_OWNER_PART_SLUG}"'/'"${GITHUB_REPOSITORY_NAME_PART}"':'"${GITHUB_SHA_SHORT}"'", "inline": false}
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'"
+              }]
+            }' \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
+      - name: Discord notification - Publish failure
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "❌ agis-bot Container Publish Failed",
+                "description": "Container build or publish failed",
+                "color": 15158332,
+                "fields": [
+                  {"name": "Repository", "value": "'"${GITHUB_REPOSITORY}"'", "inline": true},
+                  {"name": "Branch", "value": "'"${GITHUB_REF_NAME}"'", "inline": true},
+                  {"name": "Commit", "value": "'"${GITHUB_SHA_SHORT}"'", "inline": true},
+                  {"name": "Workflow", "value": "[View logs](https://github.com/'"${GITHUB_REPOSITORY}"'/actions/runs/'"${GITHUB_RUN_ID}"')", "inline": false}
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'"
+              }]
+            }' \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
       - run: echo "⭐️ the kubefirst open source platform is powered by github stars. give kubefirst one today https://github.com/kubefirst/kubefirst"
   development:
     needs: publish
@@ -115,6 +153,43 @@ jobs:
             -p gitUrlNoProtocol="git@github.com:${GITHUB_REPOSITORY_OWNER_PART_SLUG}" \
             -p shortSha="${GITHUB_SHA_SHORT}" \
             --wait --log
+      - name: Discord notification - Development deployment success
+        if: success()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "🟢 agis-bot Development Deployed",
+                "description": "Development environment deployment completed successfully",
+                "color": 3066993,
+                "fields": [
+                  {"name": "Environment", "value": "Development", "inline": true},
+                  {"name": "Branch", "value": "'"${GITHUB_REF_NAME}"'", "inline": true},
+                  {"name": "Commit", "value": "'"${GITHUB_SHA_SHORT}"'", "inline": true}
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'"
+              }]
+            }' \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
+      - name: Discord notification - Development deployment failure
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "🔴 agis-bot Development Deployment Failed",
+                "description": "Development environment deployment failed",
+                "color": 15158332,
+                "fields": [
+                  {"name": "Environment", "value": "Development", "inline": true},
+                  {"name": "Branch", "value": "'"${GITHUB_REF_NAME}"'", "inline": true},
+                  {"name": "Commit", "value": "'"${GITHUB_SHA_SHORT}"'", "inline": true},
+                  {"name": "Workflow", "value": "[View logs](https://github.com/'"${GITHUB_REPOSITORY}"'/actions/runs/'"${GITHUB_RUN_ID}"')", "inline": false}
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'"
+              }]
+            }' \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
       - run: echo "⭐️ the kubefirst open source platform is powered by github stars. give kubefirst one today https://github.com/kubefirst/kubefirst"
   staging:
     needs: development
@@ -162,6 +237,43 @@ jobs:
             -p gitUrlNoProtocol="git@github.com:${GITHUB_REPOSITORY_OWNER_PART_SLUG}" \
             -p shortSha="${GITHUB_SHA_SHORT}" \
             --wait --log
+      - name: Discord notification - Staging deployment success
+        if: success()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "🟡 agis-bot Staging Deployed",
+                "description": "Staging environment deployment completed successfully",
+                "color": 16776960,
+                "fields": [
+                  {"name": "Environment", "value": "Staging", "inline": true},
+                  {"name": "Branch", "value": "'"${GITHUB_REF_NAME}"'", "inline": true},
+                  {"name": "Commit", "value": "'"${GITHUB_SHA_SHORT}"'", "inline": true}
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'"
+              }]
+            }' \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
+      - name: Discord notification - Staging deployment failure
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "🔴 agis-bot Staging Deployment Failed",
+                "description": "Staging environment deployment failed",
+                "color": 15158332,
+                "fields": [
+                  {"name": "Environment", "value": "Staging", "inline": true},
+                  {"name": "Branch", "value": "'"${GITHUB_REF_NAME}"'", "inline": true},
+                  {"name": "Commit", "value": "'"${GITHUB_SHA_SHORT}"'", "inline": true},
+                  {"name": "Workflow", "value": "[View logs](https://github.com/'"${GITHUB_REPOSITORY}"'/actions/runs/'"${GITHUB_RUN_ID}"')", "inline": false}
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'"
+              }]
+            }' \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
       - run: echo "⭐️ the kubefirst open source platform is powered by github stars. give kubefirst one today https://github.com/kubefirst/kubefirst"
   release:
     needs: staging
@@ -209,6 +321,43 @@ jobs:
             -p gitUrlNoProtocol="git@github.com:${GITHUB_REPOSITORY_OWNER_PART_SLUG}" \
             -p shortSha="${GITHUB_SHA_SHORT}" \
             --wait --log
+      - name: Discord notification - Production deployment success
+        if: success()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "🔴 agis-bot Production Deployed",
+                "description": "Production environment deployment completed successfully",
+                "color": 15158332,
+                "fields": [
+                  {"name": "Environment", "value": "Production", "inline": true},
+                  {"name": "Branch", "value": "'"${GITHUB_REF_NAME}"'", "inline": true},
+                  {"name": "Commit", "value": "'"${GITHUB_SHA_SHORT}"'", "inline": true}
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'"
+              }]
+            }' \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
+      - name: Discord notification - Production deployment failure
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "🔴 agis-bot Production Deployment Failed",
+                "description": "Production environment deployment failed",
+                "color": 15158332,
+                "fields": [
+                  {"name": "Environment", "value": "Production", "inline": true},
+                  {"name": "Branch", "value": "'"${GITHUB_REF_NAME}"'", "inline": true},
+                  {"name": "Commit", "value": "'"${GITHUB_SHA_SHORT}"'", "inline": true},
+                  {"name": "Workflow", "value": "[View logs](https://github.com/'"${GITHUB_REPOSITORY}"'/actions/runs/'"${GITHUB_RUN_ID}"')", "inline": false}
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'"
+              }]
+            }' \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
       - run: echo "⭐️ the kubefirst open source platform is powered by github stars. give kubefirst one today https://github.com/kubefirst/kubefirst"
   test:
     needs: release
@@ -224,11 +373,40 @@ jobs:
           else
             echo "No integration test script found. Skipping tests."
           fi
-      - name: Notify Slack on failure
+      - name: Notify Discord on failure
         if: failure()
-        uses: 8398a7/action-slack@v3
+        uses: Ilshidur/action-discord@master
         with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          args: |
+            🚨 **CI/CD Pipeline Failed**
+            
+            **Repository:** ${{ github.repository }}
+            **Workflow:** ${{ github.workflow }}
+            **Job:** ${{ github.job }}
+            **Branch:** ${{ github.ref_name }}
+            **Commit:** ${{ github.sha }}
+            **Author:** ${{ github.actor }}
+            **Message:** ${{ github.event.head_commit.message }}
+            
+            [View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      - name: Notify Discord on success
+        if: success()
+        uses: Ilshidur/action-discord@master
+        with:
+          args: |
+            ✅ **CI/CD Pipeline Successful**
+            
+            **Repository:** ${{ github.repository }}
+            **Workflow:** ${{ github.workflow }}
+            **Job:** ${{ github.job }}
+            **Branch:** ${{ github.ref_name }}
+            **Commit:** `${{ github.sha }}`
+            **Author:** ${{ github.actor }}
+            **Message:** ${{ github.event.head_commit.message }}
+            
+            🚀 Deployment completed successfully!
+            [View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
