@@ -5,6 +5,14 @@ metadata:
 spec:
   entrypoint: main
   serviceAccountName: argo-server
+  arguments:
+    parameters:
+      - name: appName
+      - name: branch
+      - name: containerRegistryURL
+      - name: gitUrlNoProtocol
+      - name: shortSha
+      - name: chartDir
   templates:
     - name: main
       steps:
