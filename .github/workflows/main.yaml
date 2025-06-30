@@ -48,6 +48,7 @@ jobs:
           $HOME/bin/kubectl version --client
       - name: Set up kubeconfig
         run: |
+          set -euo pipefail
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
@@ -55,6 +56,7 @@ jobs:
           KUBECONFIG: $HOME/.kube/config
       - name: Verify cluster access
         run: |
+          set -euo pipefail
           echo "Testing cluster connectivity..."
           for i in {1..3}; do
             echo "Attempt $i:"
@@ -73,6 +75,7 @@ jobs:
           kubectl get ns argo
       - name: Show current working directory
         run: |
+          set -euo pipefail
           pwd
           ls -la
       - run: echo ${GITHUB_REPOSITORY}
@@ -80,6 +83,7 @@ jobs:
       - run: echo ${GITHUB_SERVER_URL}
       - name: Verify .argo/publish.yaml exists
         run: |
+          set -euo pipefail
           if [ ! -f .argo/publish.yaml ]; then
             echo ".argo/publish.yaml not found!"
             exit 1
@@ -87,11 +91,13 @@ jobs:
           echo ".argo/publish.yaml exists"
       - name: Show .argo directory contents
         run: |
+          set -euo pipefail
           ls -la .argo/
           echo "Contents of .argo/publish.yaml (first 20 lines):"
           head -20 .argo/publish.yaml
       - name: Install and setup Argo CLI
         run: |
+          set -euo pipefail
           echo "Install argo"
           curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz
           gunzip argo-linux-amd64.gz
@@ -100,9 +106,11 @@ jobs:
           ./argo-linux-amd64 version --short
       - name: Validate Argo workflow YAML
         run: |
+          set -euo pipefail
           ./argo-linux-amd64 lint .argo/publish.yaml
       - name: publish
         run: |
+          set -euo pipefail
           # Debug: Print all the variables to ensure they're set
           echo "GITHUB_REPOSITORY_NAME_PART: ${GITHUB_REPOSITORY_NAME_PART}"
           echo "GITHUB_REF_NAME: ${GITHUB_REF_NAME}"
@@ -122,6 +130,7 @@ jobs:
       - name: Discord notification - Publish success
         if: success()
         run: |
+          set -euo pipefail
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
@@ -141,6 +150,7 @@ jobs:
       - name: Discord notification - Publish failure
         if: failure()
         run: |
+          set -euo pipefail
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
@@ -172,11 +182,13 @@ jobs:
           short-length: 7
       - name: Set additional environment variables
         run: |
+          set -euo pipefail
           echo "GITHUB_SHA_SHORT=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
           echo "GITHUB_REPOSITORY_OWNER_PART_SLUG=$(echo ${GITHUB_REPOSITORY_OWNER} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
           echo "GITHUB_REPOSITORY_NAME_PART=$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f2)" >> $GITHUB_ENV
       - name: Setup kubectl
         run: |
+          set -euo pipefail
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
           mkdir -p $HOME/bin
@@ -185,6 +197,7 @@ jobs:
           $HOME/bin/kubectl version --client
       - name: Set up kubeconfig
         run: |
+          set -euo pipefail
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
@@ -192,6 +205,7 @@ jobs:
           KUBECONFIG: $HOME/.kube/config
       - name: Verify cluster access
         run: |
+          set -euo pipefail
           echo "Testing cluster connectivity..."
           for i in {1..3}; do
             echo "Attempt $i:"
@@ -210,6 +224,7 @@ jobs:
           kubectl get ns argo
       - name: development
         run: |
+          set -euo pipefail
           echo "Install argo"
           curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz
           gunzip argo-linux-amd64.gz
@@ -230,6 +245,7 @@ jobs:
       - name: Discord notification - Development deployment success
         if: success()
         run: |
+          set -euo pipefail
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
@@ -248,6 +264,7 @@ jobs:
       - name: Discord notification - Development deployment failure
         if: failure()
         run: |
+          set -euo pipefail
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
@@ -279,11 +296,13 @@ jobs:
           short-length: 7
       - name: Set additional environment variables
         run: |
+          set -euo pipefail
           echo "GITHUB_SHA_SHORT=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
           echo "GITHUB_REPOSITORY_OWNER_PART_SLUG=$(echo ${GITHUB_REPOSITORY_OWNER} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
           echo "GITHUB_REPOSITORY_NAME_PART=$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f2)" >> $GITHUB_ENV
       - name: Setup kubectl
         run: |
+          set -euo pipefail
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
           mkdir -p $HOME/bin
@@ -292,6 +311,7 @@ jobs:
           $HOME/bin/kubectl version --client
       - name: Set up kubeconfig
         run: |
+          set -euo pipefail
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
@@ -299,6 +319,7 @@ jobs:
           KUBECONFIG: $HOME/.kube/config
       - name: Verify cluster access
         run: |
+          set -euo pipefail
           echo "Testing cluster connectivity..."
           for i in {1..3}; do
             echo "Attempt $i:"
@@ -317,6 +338,7 @@ jobs:
           kubectl get ns argo
       - name: staging
         run: |
+          set -euo pipefail
           echo "Install argo"
           curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz
           gunzip argo-linux-amd64.gz
@@ -337,6 +359,7 @@ jobs:
       - name: Discord notification - Staging deployment success
         if: success()
         run: |
+          set -euo pipefail
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
@@ -355,6 +378,7 @@ jobs:
       - name: Discord notification - Staging deployment failure
         if: failure()
         run: |
+          set -euo pipefail
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
@@ -386,11 +410,13 @@ jobs:
           short-length: 7
       - name: Set additional environment variables
         run: |
+          set -euo pipefail
           echo "GITHUB_SHA_SHORT=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
           echo "GITHUB_REPOSITORY_OWNER_PART_SLUG=$(echo ${GITHUB_REPOSITORY_OWNER} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
           echo "GITHUB_REPOSITORY_NAME_PART=$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f2)" >> $GITHUB_ENV
       - name: Setup kubectl
         run: |
+          set -euo pipefail
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
           mkdir -p $HOME/bin
@@ -399,6 +425,7 @@ jobs:
           $HOME/bin/kubectl version --client
       - name: Set up kubeconfig
         run: |
+          set -euo pipefail
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
@@ -406,6 +433,7 @@ jobs:
           KUBECONFIG: $HOME/.kube/config
       - name: Verify cluster access
         run: |
+          set -euo pipefail
           echo "Testing cluster connectivity..."
           for i in {1..3}; do
             echo "Attempt $i:"
@@ -424,6 +452,7 @@ jobs:
           kubectl get ns argo
       - name: release
         run: |
+          set -euo pipefail
           echo "Install argo"
           curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz
           gunzip argo-linux-amd64.gz
@@ -444,6 +473,7 @@ jobs:
       - name: Discord notification - Production deployment success
         if: success()
         run: |
+          set -euo pipefail
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
@@ -462,6 +492,7 @@ jobs:
       - name: Discord notification - Production deployment failure
         if: failure()
         run: |
+          set -euo pipefail
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
