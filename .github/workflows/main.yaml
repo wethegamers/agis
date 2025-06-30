@@ -73,28 +73,6 @@ jobs:
             fi
           done
           kubectl get ns argo
-      - name: Show current working directory
-        run: |
-          set -euo pipefail
-          pwd
-          ls -la
-      - run: echo ${GITHUB_REPOSITORY}
-      - run: echo ${GITHUB_REPOSITORY_NAME_PART}
-      - run: echo ${GITHUB_SERVER_URL}
-      - name: Verify .argo/publish.yaml exists
-        run: |
-          set -euo pipefail
-          if [ ! -f .argo/publish.yaml ]; then
-            echo ".argo/publish.yaml not found!"
-            exit 1
-          fi
-          echo ".argo/publish.yaml exists"
-      - name: Show .argo directory contents
-        run: |
-          set -euo pipefail
-          ls -la .argo/
-          echo "Contents of .argo/publish.yaml (first 20 lines):"
-          head -20 .argo/publish.yaml
       - name: Install and setup Argo CLI
         run: |
           set -euo pipefail
@@ -108,15 +86,45 @@ jobs:
         run: |
           set -euo pipefail
           ./argo-linux-amd64 lint .argo/publish.yaml
-      - name: publish
+      - name: Debug environment variables before submit
         run: |
           set -euo pipefail
-          # Debug: Print all the variables to ensure they're set
+          echo "=== Environment Variables ==="
+          echo "GITHUB_REPOSITORY: ${GITHUB_REPOSITORY}"
           echo "GITHUB_REPOSITORY_NAME_PART: ${GITHUB_REPOSITORY_NAME_PART}"
           echo "GITHUB_REF_NAME: ${GITHUB_REF_NAME}"
           echo "GITHUB_REPOSITORY_OWNER_PART_SLUG: ${GITHUB_REPOSITORY_OWNER_PART_SLUG}"
           echo "GITHUB_SHA_SHORT: ${GITHUB_SHA_SHORT}"
+          echo "GITHUB_SERVER_URL: ${GITHUB_SERVER_URL}"
+          echo "=== Checking for empty variables ==="
+          [ -n "${GITHUB_REPOSITORY_NAME_PART}" ] && echo "✅ GITHUB_REPOSITORY_NAME_PART is set" || echo "❌ GITHUB_REPOSITORY_NAME_PART is empty"
+          [ -n "${GITHUB_REF_NAME}" ] && echo "✅ GITHUB_REF_NAME is set" || echo "❌ GITHUB_REF_NAME is empty"
+          [ -n "${GITHUB_REPOSITORY_OWNER_PART_SLUG}" ] && echo "✅ GITHUB_REPOSITORY_OWNER_PART_SLUG is set" || echo "❌ GITHUB_REPOSITORY_OWNER_PART_SLUG is empty"
+          [ -n "${GITHUB_SHA_SHORT}" ] && echo "✅ GITHUB_SHA_SHORT is set" || echo "❌ GITHUB_SHA_SHORT is empty"
+      - name: publish
+        run: |
+          set -euo pipefail
+          echo "=== Submitting Argo Workflow ==="
           
+          # Validate required parameters before submission
+          if [ -z "${GITHUB_REPOSITORY_NAME_PART}" ]; then
+            echo "❌ ERROR: GITHUB_REPOSITORY_NAME_PART is empty"
+            exit 1
+          fi
+          if [ -z "${GITHUB_REF_NAME}" ]; then
+            echo "❌ ERROR: GITHUB_REF_NAME is empty"
+            exit 1
+          fi
+          if [ -z "${GITHUB_REPOSITORY_OWNER_PART_SLUG}" ]; then
+            echo "❌ ERROR: GITHUB_REPOSITORY_OWNER_PART_SLUG is empty"
+            exit 1
+          fi
+          if [ -z "${GITHUB_SHA_SHORT}" ]; then
+            echo "❌ ERROR: GITHUB_SHA_SHORT is empty"
+            exit 1
+          fi
+          
+          echo "✅ All required parameters are set"
           echo "Submitting Argo workflow..."
           ./argo-linux-amd64 submit .argo/publish.yaml \
             --generate-name="${GITHUB_REPOSITORY_NAME_PART}-publish-${GITHUB_SHA_SHORT}-" \
