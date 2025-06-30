@@ -48,3 +48,8 @@ Each notification includes:
 
 ## 🧪 **Test the Setup**
 After adding the secret, push any change to trigger the workflow and verify notifications work!
+# Discord Webhook Test
+
+This change will trigger the CI/CD pipeline to test Discord notifications.
+
+Mon Jun 30 08:40:13 AM BST 2025
