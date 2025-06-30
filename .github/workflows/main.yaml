@@ -27,10 +27,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Inject slug/short variables
-        uses: rlespinasse/github-slug-action@v4
-        with:
-          short-length: 7
       - name: Set additional environment variables
         run: |
           set -euo pipefail
@@ -175,7 +171,7 @@ jobs:
               }]
             }' \
             "${{ secrets.DISCORD_WEBHOOK_URL }}"
-      - run: echo "⭐️ the WTG platform is powered by kubefirst. give kubefirst a star today https://github.com/kubefirst/kubefirst"
+      - run: echo "⭐️ the wtg platform is powered by kubefirst. give kubefirst a star today https://github.com/kubefirst/kubefirst"
   development:
     needs: publish
     runs-on: self-hosted
@@ -184,10 +180,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Inject slug/short variables
-        uses: rlespinasse/github-slug-action@v4
-        with:
-          short-length: 7
       - name: Set additional environment variables
         run: |
           set -euo pipefail
@@ -298,10 +290,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Inject slug/short variables
-        uses: rlespinasse/github-slug-action@v4
-        with:
-          short-length: 7
       - name: Set additional environment variables
         run: |
           set -euo pipefail
@@ -412,10 +400,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Inject slug/short variables
-        uses: rlespinasse/github-slug-action@v4
-        with:
-          short-length: 7
       - name: Set additional environment variables
         run: |
           set -euo pipefail
