@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.0.0] - 2025-06-30
+## [0.4.0] - 2025-06-30
 
-### 🚀 Major Release - Complete CI/CD Integration & Discord Notifications
+### � Development Release - CI/CD Integration & Discord Notifications
 
-This release completes the modernization of agis-bot with full CI/CD pipeline integration, Discord notification system, and GitHub webhook proxy for comprehensive repository event handling.
+This development release adds CI/CD pipeline integration, Discord notification system, and GitHub webhook proxy. The bot is approximately 30-40% production ready and still in active development.
 
 ### Added
 
