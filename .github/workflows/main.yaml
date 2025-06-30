@@ -420,10 +420,6 @@ jobs:
             fi
           done
           kubectl get ns argo
-      - name: Verify cluster access
-        run: |
-          kubectl cluster-info
-          kubectl get ns argo
       - name: release
         run: |
           echo "Install argo"
@@ -449,9 +445,9 @@ jobs:
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
-                "title": "🔴 agis-bot Production Deployed",
+                "title": "� agis-bot Production Deployed",
                 "description": "Production environment deployment completed successfully",
-                "color": 15158332,
+                "color": 3066993,
                 "fields": [
                   {"name": "Environment", "value": "Production", "inline": true},
                   {"name": "Branch", "value": "'"${GITHUB_REF_NAME}"'", "inline": true},
