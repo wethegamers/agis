@@ -67,3 +67,41 @@ spec:
                   value: '{{workflow.parameters.gitUrlNoProtocol}}'
                 - name: commitMessage
                   value: 'setting {{workflow.parameters.appName}} {{workflow.parameters.environment}} to chart version {{steps.get-initial-chart-version.outputs.result}}-rc.{{workflow.parameters.shortSha}}'
+        - - name: notify-success
+            templateRef:
+              name: cwft-discord-notifications
+              template: notify-discord-success
+              clusterScope: true
+            arguments:
+              parameters:
+                - name: message
+                  value: '🚀 {{workflow.parameters.appName}} successfully deployed to {{workflow.parameters.environment}}'
+                - name: workflowName
+                  value: '{{workflow.name}}'
+                - name: appName
+                  value: '{{workflow.parameters.appName}}'
+                - name: environment
+                  value: '{{workflow.parameters.environment}}'
+                - name: commitSha
+                  value: '{{workflow.parameters.shortSha}}'
+  onExit: notify-on-failure
+  templates:
+    - name: notify-on-failure
+      templateRef:
+        name: cwft-discord-notifications
+        template: notify-discord-failure
+        clusterScope: true
+      arguments:
+        parameters:
+          - name: message
+            value: '❌ {{workflow.parameters.appName}} deployment failed on {{workflow.parameters.environment}}'
+          - name: workflowName
+            value: '{{workflow.name}}'
+          - name: appName
+            value: '{{workflow.parameters.appName}}'
+          - name: environment
+            value: '{{workflow.parameters.environment}}'
+          - name: commitSha
+            value: '{{workflow.parameters.shortSha}}'
+          - name: errorMessage
+            value: '{{workflow.status}}'
