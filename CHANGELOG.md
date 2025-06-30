@@ -7,6 +7,117 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-06-30
+
+### 🚀 Major Release - Complete CI/CD Integration & Discord Notifications
+
+This release completes the modernization of agis-bot with full CI/CD pipeline integration, Discord notification system, and GitHub webhook proxy for comprehensive repository event handling.
+
+### Added
+
+#### 📢 Complete Discord Integration System
+- **CI/CD Pipeline Notifications**: Rich Discord embeds for all GitHub Actions workflow stages
+  - Container publishing success/failure notifications
+  - Development, staging, and production deployment status
+  - Integration testing results and pipeline completion
+- **Argo Workflow Integration**: Discord notifications for Argo workflow success/failure events
+- **GitHub Webhook Proxy**: Custom Kubernetes-deployed service for GitHub repository events
+  - Deployed at `http://74.220.19.34` with LoadBalancer access
+  - Supports issues, pull requests, stars, forks, releases, and repository events
+  - Prevents duplicate notifications by filtering CI/CD events handled by workflows
+
+#### 🔧 Production-Ready CI/CD Pipeline
+- **Multi-Stage Deployment**: Automated publish → development → staging → production pipeline
+- **Container Registry Integration**: GHCR publishing with automated image tagging
+- **Environment-Specific Deployments**: Proper environment isolation and configuration
+- **Comprehensive Testing**: Integration test stage with Discord notifications
+
+#### 🏗️ Kubernetes Infrastructure
+- **Webhook Proxy Service**: Production-ready deployment with ConfigMap-based code injection
+- **External Secrets Integration**: Vault-backed secret management for Discord webhooks
+- **LoadBalancer Services**: External access for GitHub webhook integration
+- **Health Monitoring**: Kubernetes liveness and readiness probes
+
+#### 📚 Comprehensive Documentation
+- **Deployment Guide**: Complete webhook setup and configuration documentation
+- **Setup Scripts**: Automated webhook configuration and testing tools
+- **Status Documentation**: Real-time deployment status and troubleshooting guides
+
+### Changed
+
+#### 🔄 CI/CD Architecture Overhaul
+- **Notification Strategy**: Migrated from scattered notifications to unified Discord system
+- **Webhook Integration**: Centralized GitHub event handling via dedicated proxy service
+- **Environment Configuration**: Proper secret management and environment variable handling
+- **Deployment Process**: Streamlined multi-environment deployment with status tracking
+
+#### 💻 Development Workflow
+- **Branch Strategy**: Optimized for main-branch CI/CD with proper environment promotion
+- **Testing Integration**: Automated testing with comprehensive failure reporting
+- **Error Handling**: Enhanced error reporting with direct links to workflow logs
+
+### Fixed
+
+#### 🐛 Critical Production Issues
+- **Webhook Proxy Deployment**: Resolved container deployment issues with ConfigMap approach
+- **Secret Management**: Fixed Discord webhook URL access across Kubernetes namespaces
+- **External Access**: Configured LoadBalancer service for reliable GitHub webhook delivery
+- **Notification Duplicates**: Eliminated duplicate notifications between CI/CD and webhook events
+
+#### 🔧 Infrastructure Improvements
+- **Service Discovery**: Fixed external IP allocation and service exposure
+- **Container Configuration**: Resolved Python dependency installation in production environment
+- **Health Checks**: Proper HTTP endpoint configuration for Kubernetes probes
+
+### Technical Details
+
+#### 🌐 Service Architecture
+```
+GitHub Repository → GitHub Webhook → Webhook Proxy (K8s) → Discord Channel
+                                   ↗ LoadBalancer IP: 74.220.19.34
+                                   
+CI/CD Pipeline → GitHub Actions → Argo Workflows → Discord Notifications
+```
+
+#### 📦 New Components
+- `github-discord-webhook-proxy.py` - Python webhook translation service
+- `k8s-github-webhook-proxy-configmap.yaml` - Kubernetes deployment manifests
+- `setup-github-webhook.sh` - Automated webhook configuration script
+- `WEBHOOK_DEPLOYMENT_STATUS.md` - Comprehensive deployment documentation
+
+#### 🔗 External Integrations
+- **GitHub Webhooks**: Repository events → Discord notifications
+- **Discord API**: Rich embed formatting with environment-specific styling
+- **Kubernetes LoadBalancer**: External webhook endpoint exposure
+- **Vault Secrets**: Secure webhook URL management
+
+### Migration Notes
+
+#### ⚠️ Breaking Changes
+- **Webhook Configuration**: GitHub repository webhook must be configured manually
+- **Secret Requirements**: Discord webhook URL must be available in Kubernetes secrets
+- **Network Requirements**: External LoadBalancer access required for webhook proxy
+
+#### 🚀 Deployment Requirements
+1. **Kubernetes Cluster**: Must support LoadBalancer services
+2. **External Secrets**: Vault integration for Discord webhook URL
+3. **GitHub Repository Access**: Admin access required for webhook configuration
+4. **Discord Channel**: Webhook URL configured for target Discord channel
+
+### 📋 Setup Checklist
+- ✅ Webhook proxy deployed to Kubernetes (`http://74.220.19.34`)
+- ✅ CI/CD pipeline with Discord notifications active
+- ✅ Argo workflow Discord integration configured
+- ✅ External secrets configured for webhook URLs
+- ⏳ **Manual Step Required**: Configure GitHub repository webhook
+
+### 🎯 Next Steps
+- Configure GitHub repository webhook at: https://github.com/wethegamers/agis-bot/settings/hooks
+- Monitor Discord channel for comprehensive notification coverage
+- Test end-to-end integration with repository events
+
+---
+
 ## [0.2.0] - 2025-06-29
 
 ### Added
