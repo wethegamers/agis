@@ -46,17 +46,38 @@ jobs:
         run: |
           kubectl cluster-info
           kubectl get ns argo
+      - name: Show current working directory
+        run: |
+          pwd
+          ls -la
       - run: echo ${GITHUB_REPOSITORY}
       - run: echo ${GITHUB_REPOSITORY_NAME_PART}
       - run: echo ${GITHUB_SERVER_URL}
-      - name: publish
+      - name: Verify .argo/publish.yaml exists
+        run: |
+          if [ ! -f .argo/publish.yaml ]; then
+            echo ".argo/publish.yaml not found!"
+            exit 1
+          fi
+          echo ".argo/publish.yaml exists"
+      - name: Show .argo directory contents
+        run: |
+          ls -la .argo/
+          echo "Contents of .argo/publish.yaml (first 20 lines):"
+          head -20 .argo/publish.yaml
+      - name: Install and setup Argo CLI
         run: |
           echo "Install argo"
           curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz
           gunzip argo-linux-amd64.gz
           chmod +x argo-linux-amd64
           echo "commit sha ${GITHUB_SHA}"
-          
+          ./argo-linux-amd64 version --short
+      - name: Validate Argo workflow YAML
+        run: |
+          ./argo-linux-amd64 lint .argo/publish.yaml
+      - name: publish
+        run: |
           # Debug: Print all the variables to ensure they're set
           echo "GITHUB_REPOSITORY_NAME_PART: ${GITHUB_REPOSITORY_NAME_PART}"
           echo "GITHUB_REF_NAME: ${GITHUB_REF_NAME}"
@@ -64,7 +85,6 @@ jobs:
           echo "GITHUB_SHA_SHORT: ${GITHUB_SHA_SHORT}"
           
           echo "Submitting Argo workflow..."
-          ./argo-linux-amd64 version --short
           ./argo-linux-amd64 submit .argo/publish.yaml \
             --generate-name="${GITHUB_REPOSITORY_NAME_PART}-publish-${GITHUB_SHA_SHORT}-" \
             -p appName="${GITHUB_REPOSITORY_NAME_PART}" \
