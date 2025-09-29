@@ -148,9 +148,21 @@ func main() {
 	commandHandler := commands.NewCommandHandler(cfg, dbService, loggingService)
 	log.Println("✅ Modular command system initialized")
 
-	// Register event handlers
+	// Register event handlers (message-based)
 	session.AddHandler(commandHandler.HandleMessage)
 	session.AddHandler(ready)
+
+	// Register slash commands and interaction handler
+	session.AddHandler(commandHandler.HandleInteraction)
+	if _, err := commandHandler.RegisterSlashCommands(session, cfg.Discord.GuildID); err != nil {
+		log.Printf("⚠️ Failed to register slash commands: %v", err)
+	} else {
+		if cfg.Discord.GuildID != "" {
+			log.Println("✅ Registered guild slash commands")
+		} else {
+			log.Println("✅ Registered global slash commands")
+		}
+	}
 
 	// Set bot intents - include message content intent for reading message content and guild state
 	session.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages | discordgo.IntentMessageContent | discordgo.IntentsGuilds

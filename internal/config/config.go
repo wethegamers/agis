@@ -19,7 +19,9 @@ type Config struct {
 }
 
 type DiscordConfig struct {
-	Token string
+	Token   string
+	ClientID string
+	GuildID  string
 }
 
 type DatabaseConfig struct {
@@ -50,8 +52,10 @@ func Load() *Config {
 	}
 
 	return &Config{
-		Discord: DiscordConfig{
-			Token: getEnvOrDefault("DISCORD_TOKEN", ""),
+Discord: DiscordConfig{
+			Token:    getEnvOrDefault("DISCORD_TOKEN", ""),
+			ClientID: getEnvOrDefault("DISCORD_CLIENT_ID", ""),
+			GuildID:  getEnvOrDefault("DISCORD_GUILD_ID", ""),
 		},
 		Database: DatabaseConfig{
 			Host:     getEnvOrDefault("DB_HOST", ""),
