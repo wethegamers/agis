@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -105,7 +106,7 @@ func (h *CommandHandler) HandleInteraction(s *discordgo.Session, i *discordgo.In
 			Permissions:    h.permissions,
 			UserPerm:       userPerm,
 			Logger:         h.logger,
-			Context:        i.Context(),
+			Context:        context.Background(),
 			EnhancedServer: h.enhancedServer,
 			Notifications:  h.notifications,
 			Agones:         h.agones,

@@ -103,9 +103,11 @@ func (c *Client) AllocateGameServer(ctx context.Context, fleetName string) (*all
 			Namespace:    c.namespace,
 		},
 		Spec: allocationv1.GameServerAllocationSpec{
-			Required: metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"agones.dev/fleet": fleetName,
+			Required: allocationv1.GameServerSelector{
+				LabelSelector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"agones.dev/fleet": fleetName,
+					},
 				},
 			},
 		},
