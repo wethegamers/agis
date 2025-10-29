@@ -13,7 +13,18 @@ import (
 // If guildID is non-empty, commands are registered in that guild for faster propagation;
 // otherwise they are registered globally (may take up to 1 hour to appear).
 func (h *CommandHandler) RegisterSlashCommands(s *discordgo.Session, guildID string) ([]*discordgo.ApplicationCommand, error) {
-	appID := s.State.User.ID
+	// Determine application ID safely
+	appID := ""
+	if s != nil && s.State != nil && s.State.User != nil && s.State.User.ID != "" {
+		appID = s.State.User.ID
+	} else if h != nil && h.config != nil && h.config.Discord.ClientID != "" {
+		appID = h.config.Discord.ClientID
+	}
+	if appID == "" {
+		log.Printf("Skipping slash command registration: no application ID available (session not open and DISCORD_CLIENT_ID not set)")
+		return nil, nil
+	}
+
 	created := make([]*discordgo.ApplicationCommand, 0, len(h.commands))
 
 	for name, cmd := range h.commands {
