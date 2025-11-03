@@ -16,8 +16,9 @@ type DatabaseService struct {
 	db        *sql.DB
 	localMode bool
 	// In-memory storage for local development
-	localUsers map[string]*User
-	localMutex sync.RWMutex
+	localUsers       map[string]*User
+	localConversions map[string]bool
+	localMutex       sync.RWMutex
 }
 
 // User represents a Discord user in our system
@@ -83,10 +84,11 @@ func NewDatabaseService(cfg *config.Config) (*DatabaseService, error) {
 	if cfg.Database.Host == "" {
 		log.Println("📄 Database disabled (DB_HOST is empty) - running in local mode")
 		return &DatabaseService{
-			db:         nil,
-			localMode:  true,
-			localUsers: make(map[string]*User),
-			localMutex: sync.RWMutex{},
+			db:               nil,
+			localMode:        true,
+			localUsers:       make(map[string]*User),
+			localConversions: make(map[string]bool),
+			localMutex:       sync.RWMutex{},
 		}, nil
 	}
 
@@ -105,10 +107,11 @@ func NewDatabaseService(cfg *config.Config) (*DatabaseService, error) {
 	}
 
 	service := &DatabaseService{
-		db:         db,
-		localMode:  false,
-		localUsers: nil,
-		localMutex: sync.RWMutex{},
+		db:               db,
+		localMode:        false,
+		localUsers:       nil,
+		localConversions: nil,
+		localMutex:       sync.RWMutex{},
 	}
 	if err := service.initDatabase(); err != nil {
 		return nil, fmt.Errorf("failed to initialize database: %v", err)
@@ -225,6 +228,20 @@ func (d *DatabaseService) initDatabase() error {
 		`ALTER TABLE game_servers ADD COLUMN IF NOT EXISTS last_heartbeat TIMESTAMP DEFAULT NOW()`,
 		`ALTER TABLE game_servers ADD COLUMN IF NOT EXISTS error_message TEXT DEFAULT ''`,
 		`ALTER TABLE game_servers ADD COLUMN IF NOT EXISTS cleanup_at TIMESTAMP`,
+	}
+
+	// Ad conversions table (idempotency)
+	createConversions := `
+CREATE TABLE IF NOT EXISTS ad_conversions (
+	conversion_id TEXT PRIMARY KEY,
+	uid VARCHAR(64) NOT NULL,
+	amount INTEGER NOT NULL,
+	source VARCHAR(32) NOT NULL,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`
+
+	if _, err := d.db.Exec(createConversions); err != nil {
+		return fmt.Errorf("failed to create ad_conversions: %v", err)
 	}
 
 	for _, migration := range migrations {
@@ -367,6 +384,48 @@ func (d *DatabaseService) AddCredits(discordID string, amount int) error {
 	`, amount, discordID)
 
 	return err
+}
+
+// ProcessAdConversion credits the user if the conversion id is new (idempotent)
+func (d *DatabaseService) ProcessAdConversion(uid string, amount int, conversionID, source string) error {
+	if d.localMode {
+		d.localMutex.Lock()
+		defer d.localMutex.Unlock()
+		if d.localConversions[conversionID] {
+			return nil
+		}
+		if _, exists := d.localUsers[uid]; !exists {
+			d.localUsers[uid] = &User{DiscordID: uid, Credits: 100, Tier: "free", LastDaily: time.Now().AddDate(0, 0, -1), LastWork: time.Now().AddDate(0, 0, -2), JoinDate: time.Now()}
+		}
+		d.localUsers[uid].Credits += amount
+		if d.localUsers[uid].Credits < 0 {
+			d.localUsers[uid].Credits = 0
+		}
+		d.localConversions[conversionID] = true
+		return nil
+	}
+	if d.db == nil {
+		return nil
+	}
+	// check existing
+	var existing string
+	err := d.db.QueryRow(`SELECT conversion_id FROM ad_conversions WHERE conversion_id=$1`, conversionID).Scan(&existing)
+	if err == nil {
+		return nil
+	}
+	// credit and insert within a transaction
+	tx, err := d.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(`UPDATE users SET credits = credits + $1 WHERE discord_id=$2`, amount, uid); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`INSERT INTO ad_conversions(conversion_id, uid, amount, source) VALUES ($1,$2,$3,$4)`, conversionID, uid, amount, source); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // Server operations
@@ -847,7 +906,7 @@ func (d *DatabaseService) GetServerStatus(serverName, discordID string) string {
 		SELECT status FROM game_servers 
 		WHERE name = $1 AND discord_id = $2`,
 		serverName, discordID).Scan(&status)
-	
+
 	if err != nil {
 		return "unknown"
 	}
