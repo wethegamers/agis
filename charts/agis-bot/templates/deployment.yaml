@@ -155,6 +155,24 @@ spec:
                   name: agis-bot-secrets
                   key: AYET_CALLBACK_TOKEN
                   optional: true
+            - name: AYET_OFFERWALL_URL
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: AYET_OFFERWALL_URL
+                  optional: true
+            - name: AYET_SURVEYWALL_URL
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: AYET_SURVEYWALL_URL
+                  optional: true
+            - name: AYET_VIDEO_PLACEMENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: AYET_VIDEO_PLACEMENT_ID
+                  optional: true
           # Health and readiness probes for monitoring
           livenessProbe:
             httpGet:

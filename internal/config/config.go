@@ -48,6 +48,9 @@ type RoleConfig struct {
 type AdsConfig struct {
 	AyetAPIKey        string
 	AyetCallbackToken string
+	OfferwallURL      string
+	SurveywallURL     string
+	VideoPlacementID  string
 }
 
 // Load loads configuration from environment variables
@@ -82,6 +85,9 @@ func Load() *Config {
 		Ads: AdsConfig{
 			AyetAPIKey:        getEnvOrDefault("AYET_API_KEY", ""),
 			AyetCallbackToken: getEnvOrDefault("AYET_CALLBACK_TOKEN", ""),
+			OfferwallURL:      getEnvOrDefault("AYET_OFFERWALL_URL", ""),
+			SurveywallURL:     getEnvOrDefault("AYET_SURVEYWALL_URL", ""),
+			VideoPlacementID:  getEnvOrDefault("AYET_VIDEO_PLACEMENT_ID", ""),
 		},
 	}
 }

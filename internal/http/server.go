@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -31,6 +32,10 @@ var (
 	adsCallbackToken string
 	// api key used to verify HMAC signatures from ayet-studios
 	adsAPIKey string
+	// links for ads landing (offerwall/survey/video)
+	offerwallURL     string
+	surveywallURL    string
+	videoPlacementID string
 )
 
 // SetAdsCallbackToken sets the shared callback token for ad callbacks
@@ -38,6 +43,13 @@ func SetAdsCallbackToken(token string) { adsCallbackToken = token }
 
 // SetAdsAPIKey sets the API key for signature verification
 func SetAdsAPIKey(key string) { adsAPIKey = key }
+
+// SetAdsLinks sets offerwall/survey links and video placement id for /ads page
+func SetAdsLinks(offerwall, survey, videoID string) {
+	offerwallURL = offerwall
+	surveywallURL = survey
+	videoPlacementID = videoID
+}
 
 // NewServer creates a new HTTP server
 func NewServer() *Server {
@@ -63,6 +75,9 @@ func NewServer() *Server {
 
 	// Ad callback (ayet-studios postback)
 	mux.HandleFunc("/ads/ayet/callback", ayetCallbackHandler)
+
+	// Ads landing page
+	mux.HandleFunc("/ads", adsPageHandler)
 
 	// Root endpoint
 	mux.HandleFunc("/", rootHandler)
@@ -218,6 +233,39 @@ func verifyAyetSignature(apiKey, externalIdentifier, currency, conversionID, c1,
 	h.Write([]byte(msg))
 	expected := hex.EncodeToString(h.Sum(nil))
 	return hmac.Equal([]byte(expected), []byte(sig))
+}
+
+// Minimal ads landing page (HTML)
+func adsPageHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	uid := r.URL.Query().Get("user")
+	if uid == "" {
+		uid = r.URL.Query().Get("uid")
+	}
+	tpl := `<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Earn Credits</title></head><body>
+<h2>Earn Game Credits</h2>
+<p>User: %s</p>
+<ul>
+<li>Offerwall: %s</li>
+<li>Surveywall: %s</li>
+<li>Rewarded Video: %s</li>
+</ul>
+<small>Credits are awarded automatically after completion. If not, they will post within a few minutes.</small>
+</body></html>`
+	ol := "(not configured)"
+	sl := "(not configured)"
+	vl := "(not configured)"
+	if offerwallURL != "" && uid != "" {
+		ol = "<a href=\"" + offerwallURL + "?externalIdentifier=" + uid + "\">Open Offerwall</a>"
+	}
+	if surveywallURL != "" && uid != "" {
+		sl = "<a href=\"" + surveywallURL + "?externalIdentifier=" + uid + "\">Open Surveywall</a>"
+	}
+	if videoPlacementID != "" && uid != "" {
+		vl = "<a href=\"#\" onclick=\"alert('Integrate video SDK on your web app using placement ` + videoPlacementID + `');return false;\">Play Rewarded Video</a>"
+	}
+	_, _ = w.Write([]byte(fmt.Sprintf(tpl, uid, ol, sl, vl)))
 }
 
 // Root handler

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"os/signal"
@@ -132,8 +133,13 @@ func main() {
 	// Wire ad callback token and handler (credits reward from ayet)
 	http.SetAdsCallbackToken(cfg.Ads.AyetCallbackToken)
 	http.SetAdsAPIKey(cfg.Ads.AyetAPIKey)
+	http.SetAdsLinks(cfg.Ads.OfferwallURL, cfg.Ads.SurveywallURL, cfg.Ads.VideoPlacementID)
 	http.OnRewardWithConversion = func(uid string, amount int, conversionID, source string) error {
-		return dbService.ProcessAdConversion(uid, amount, conversionID, source)
+		err := dbService.ProcessAdConversion(uid, amount, conversionID, source)
+		if errors.Is(err, services.ErrDuplicate) {
+			return nil
+		}
+		return err
 	}
 
 	// Initialize logging service
