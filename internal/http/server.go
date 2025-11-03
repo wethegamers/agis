@@ -256,6 +256,11 @@ func adsPageHandler(w http.ResponseWriter, r *http.Request) {
 	if uid == "" {
 		uid = r.URL.Query().Get("uid")
 	}
+	if uid == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte("missing user id (use ?user=<discord_id>)"))
+		return
+	}
 	tpl := `<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Earn Credits</title></head><body>
 <h2>Earn Game Credits</h2>
@@ -279,7 +284,7 @@ func adsPageHandler(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(ow, "?") {
 			sep = "&"
 		}
-		ol = "<a href=\"" + ow + sep + "externalIdentifier=" + uid + "\">Open Offerwall</a>"
+		ol = "<a target=\"_blank\" rel=\"noopener\" href=\"" + ow + sep + "externalIdentifier=" + uid + "\">Open Offerwall</a>"
 	}
 	if surveywallURL != "" && uid != "" {
 		sw := surveywallURL
@@ -290,7 +295,7 @@ func adsPageHandler(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(sw, "?") {
 			sep = "&"
 		}
-		sl = "<a href=\"" + sw + sep + "externalIdentifier=" + uid + "\">Open Surveywall</a>"
+		sl = "<a target=\"_blank\" rel=\"noopener\" href=\"" + sw + sep + "externalIdentifier=" + uid + "\">Open Surveywall</a>"
 	}
 	if videoPlacementID != "" && uid != "" {
 		vl = "<a href=\"#\" onclick=\"alert('Integrate video SDK on your web app using placement ` + videoPlacementID + `');return false;\">Play Rewarded Video</a>"
