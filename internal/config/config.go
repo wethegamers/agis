@@ -16,10 +16,11 @@ type Config struct {
 	Metrics  MetricsConfig
 	WTG      WTGConfig
 	Roles    RoleConfig
+	Ads      AdsConfig
 }
 
 type DiscordConfig struct {
-	Token   string
+	Token    string
 	ClientID string
 	GuildID  string
 }
@@ -44,6 +45,11 @@ type RoleConfig struct {
 	ModRoles   []string
 }
 
+type AdsConfig struct {
+	AyetAPIKey        string
+	AyetCallbackToken string
+}
+
 // Load loads configuration from environment variables
 func Load() *Config {
 	// Load .env file if it exists
@@ -52,7 +58,7 @@ func Load() *Config {
 	}
 
 	return &Config{
-Discord: DiscordConfig{
+		Discord: DiscordConfig{
 			Token:    getEnvOrDefault("DISCORD_TOKEN", ""),
 			ClientID: getEnvOrDefault("DISCORD_CLIENT_ID", ""),
 			GuildID:  getEnvOrDefault("DISCORD_GUILD_ID", ""),
@@ -72,6 +78,10 @@ Discord: DiscordConfig{
 		Roles: RoleConfig{
 			AdminRoles: parseRoles(getEnvOrDefault("ADMIN_ROLES", "")),
 			ModRoles:   parseRoles(getEnvOrDefault("MOD_ROLES", "")),
+		},
+		Ads: AdsConfig{
+			AyetAPIKey:        getEnvOrDefault("AYET_API_KEY", ""),
+			AyetCallbackToken: getEnvOrDefault("AYET_CALLBACK_TOKEN", ""),
 		},
 	}
 }

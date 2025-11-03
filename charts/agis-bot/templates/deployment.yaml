@@ -143,6 +143,18 @@ spec:
                   name: agis-bot-secrets
                   key: LOG_CHANNEL_AUDIT
                   optional: true
+            - name: AYET_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: AYET_API_KEY
+                  optional: true
+            - name: AYET_CALLBACK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: AYET_CALLBACK_TOKEN
+                  optional: true
           # Health and readiness probes for monitoring
           livenessProbe:
             httpGet:

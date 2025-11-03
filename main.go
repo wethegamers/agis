@@ -129,6 +129,13 @@ func main() {
 	}
 	log.Println("✅ Database service initialized")
 
+	// Wire ad callback token and handler (credits reward from ayet)
+	http.SetAdsCallbackToken(cfg.Ads.AyetCallbackToken)
+	http.SetAdsAPIKey(cfg.Ads.AyetAPIKey)
+	http.OnRewardWithConversion = func(uid string, amount int, conversionID, source string) error {
+		return dbService.ProcessAdConversion(uid, amount, conversionID, source)
+	}
+
 	// Initialize logging service
 	loggingService := services.NewLoggingService(dbService, session, "") // Guild ID will be set later
 	log.Println("✅ Logging service initialized")
@@ -190,11 +197,11 @@ func main() {
 	<-stop
 
 	log.Println("🛑 Agis bot shutting down...")
-	
+
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	// Shutdown HTTP server
 	if err := httpServer.Stop(ctx); err != nil {
 		log.Printf("HTTP server shutdown error: %v", err)
