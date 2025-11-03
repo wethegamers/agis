@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"agis-bot/internal/version"
@@ -270,10 +271,26 @@ func adsPageHandler(w http.ResponseWriter, r *http.Request) {
 	sl := "(not configured)"
 	vl := "(not configured)"
 	if offerwallURL != "" && uid != "" {
-		ol = "<a href=\"" + offerwallURL + "?externalIdentifier=" + uid + "\">Open Offerwall</a>"
+		ow := offerwallURL
+		if strings.Contains(ow, "{YOUR_USER_IDENTIFIER}") {
+			ow = strings.ReplaceAll(ow, "{YOUR_USER_IDENTIFIER}", uid)
+		}
+		sep := "?"
+		if strings.Contains(ow, "?") {
+			sep = "&"
+		}
+		ol = "<a href=\"" + ow + sep + "externalIdentifier=" + uid + "\">Open Offerwall</a>"
 	}
 	if surveywallURL != "" && uid != "" {
-		sl = "<a href=\"" + surveywallURL + "?externalIdentifier=" + uid + "\">Open Surveywall</a>"
+		sw := surveywallURL
+		if strings.Contains(sw, "{YOUR_USER_IDENTIFIER}") {
+			sw = strings.ReplaceAll(sw, "{YOUR_USER_IDENTIFIER}", uid)
+		}
+		sep := "?"
+		if strings.Contains(sw, "?") {
+			sep = "&"
+		}
+		sl = "<a href=\"" + sw + sep + "externalIdentifier=" + uid + "\">Open Surveywall</a>"
 	}
 	if videoPlacementID != "" && uid != "" {
 		vl = "<a href=\"#\" onclick=\"alert('Integrate video SDK on your web app using placement ` + videoPlacementID + `');return false;\">Play Rewarded Video</a>"
