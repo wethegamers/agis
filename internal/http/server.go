@@ -79,6 +79,9 @@ func NewServer() *Server {
 	// Ads landing page
 	mux.HandleFunc("/ads", adsPageHandler)
 
+	// ads.txt at domain root per ayeT requirement
+	mux.HandleFunc("/ads.txt", adsTxtHandler)
+
 	// Root endpoint
 	mux.HandleFunc("/", rootHandler)
 
@@ -149,11 +152,21 @@ func infoHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// Version handler
+// Version endpoint
 func versionHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(version.GetBuildInfo())
+}
+
+// ads.txt for ayeT-Studios (served at domain root)
+func adsTxtHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(`# AYET-STUDIOS
+ayetstudios.com, AYETSTUDIOS, DIRECT
+ayetstudios.com, PL-20742, DIRECT
+`))
 }
 
 // Ad callback handler for ayet-studios
