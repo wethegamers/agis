@@ -84,22 +84,46 @@ func (e *EnhancedServerService) allocateServerAsync(ctx context.Context, server 
 		})
 	}
 
-	// Allocate GameServer from Agones
-	agonesInfo, err := e.agones.AllocateGameServer(ctx, server.GameType, server.Name, server.DiscordID)
-	if err != nil {
-		log.Printf("Failed to allocate GameServer for %s: %v", server.Name, err)
-
-		// Update database with error
-		e.db.UpdateServerStatus(server.Name, server.DiscordID, "error")
-		e.db.UpdateServerError(server.Name, server.DiscordID, err.Error())
-
-		// Notify user of error
-		if channelID != "" {
-			e.notifications.NotifyServerErrorInChannel(server.DiscordID, server.Name, server.GameType, err.Error(), channelID)
-		} else {
-			e.notifications.NotifyServerError(server.DiscordID, server.Name, server.GameType, err.Error())
+	// Allocate GameServer from Agones with retry when capacity is unavailable
+	retryInterval := 15 * time.Second
+	retryTimeout := 10 * time.Minute
+	deadline := time.Now().Add(retryTimeout)
+	var agonesInfo *GameServerInfo
+	for {
+		ai, err := e.agones.AllocateGameServer(ctx, server.GameType, server.Name, server.DiscordID)
+		if err == nil {
+			agonesInfo = ai
+			break
 		}
-		return
+		// First failure: mark as pending and notify, then keep retrying until timeout
+		log.Printf("Allocation pending for %s: %v (will retry)", server.Name, err)
+		_ = e.db.UpdateServerStatus(server.Name, server.DiscordID, "requested")
+		_ = e.notifications.NotifyServerStatusChange(ServerStatusUpdate{
+			ServerName:     server.Name,
+			UserID:         server.DiscordID,
+			PreviousStatus: "creating",
+			NewStatus:      "Pending",
+			GameType:       server.GameType,
+			ChannelID:      channelID,
+		})
+		if time.Now().After(deadline) {
+			log.Printf("Failed to allocate GameServer for %s within timeout", server.Name)
+			// Update database with error
+			_ = e.db.UpdateServerStatus(server.Name, server.DiscordID, "error")
+			_ = e.db.UpdateServerError(server.Name, server.DiscordID, "Allocation timed out waiting for capacity")
+			// Notify user of error
+			if channelID != "" {
+				e.notifications.NotifyServerErrorInChannel(server.DiscordID, server.Name, server.GameType, "Allocation timed out waiting for capacity", channelID)
+			} else {
+				e.notifications.NotifyServerError(server.DiscordID, server.Name, server.GameType, "Allocation timed out waiting for capacity")
+			}
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(retryInterval):
+		}
 	}
 
 	log.Printf("GameServer allocated: %s (UID: %s)", agonesInfo.Name, agonesInfo.UID)
