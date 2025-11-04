@@ -40,14 +40,33 @@ func (h *CommandHandler) RegisterSlashCommands(s *discordgo.Session, guildID str
 		ac := &discordgo.ApplicationCommand{
 			Name:        name,
 			Description: desc,
-			Options: []*discordgo.ApplicationCommandOption{
+		}
+		// Customize options for some commands
+		switch name {
+		case "adopt":
+			ac.Options = []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "server",
+					Description: "Server name to adopt (e.g., minecraft-nebakineza)",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "user_id",
+					Description: "Discord user ID of the owner",
+					Required:    true,
+				},
+			}
+		default:
+			ac.Options = []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
 					Name:        "args",
 					Description: "Arguments for the command (space-separated)",
 					Required:    false,
 				},
-			},
+			}
 		}
 
 		var newCmd *discordgo.ApplicationCommand
@@ -76,9 +95,23 @@ func (h *CommandHandler) HandleInteraction(s *discordgo.Session, i *discordgo.In
 	name := strings.ToLower(data.Name)
 	var args []string
 	if len(data.Options) > 0 {
-		// We use a single "args" option; split on spaces to feed existing handlers
-		if data.Options[0].StringValue() != "" {
-			args = strings.Fields(data.Options[0].StringValue())
+		if name == "adopt" {
+			var srv, uid string
+			for _, opt := range data.Options {
+				if opt.Name == "server" {
+					srv = opt.StringValue()
+				} else if opt.Name == "user_id" {
+					uid = opt.StringValue()
+				}
+			}
+			if srv != "" && uid != "" {
+				args = []string{srv, uid}
+			}
+		} else {
+			// Fallback: single args field split by spaces
+			if data.Options[0].StringValue() != "" {
+				args = strings.Fields(data.Options[0].StringValue())
+			}
 		}
 	}
 
