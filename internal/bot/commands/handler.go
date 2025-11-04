@@ -131,12 +131,18 @@ func (h *CommandHandler) HandleMessage(s *discordgo.Session, m *discordgo.Messag
 	}
 
 	// Only respond to mentions or DMs
-	if !strings.Contains(m.Content, s.State.User.Mention()) && m.GuildID != "" {
-		return
+	if m.GuildID != "" {
+		altMention := fmt.Sprintf("<@!%s>", s.State.User.ID)
+		if !(strings.Contains(m.Content, s.State.User.Mention()) || strings.Contains(m.Content, altMention)) {
+			return
+		}
 	}
 
 	content := strings.TrimSpace(m.Content)
+	// Strip both mention formats <@id> and <@!id>
 	content = strings.ReplaceAll(content, s.State.User.Mention(), "")
+	altMention := fmt.Sprintf("<@!%s>", s.State.User.ID)
+	content = strings.ReplaceAll(content, altMention, "")
 	content = strings.ToLower(strings.TrimSpace(content))
 
 	args := strings.Fields(content)
