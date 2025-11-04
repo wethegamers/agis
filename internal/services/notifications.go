@@ -46,7 +46,7 @@ func (n *NotificationService) SetDiscordSession(session *discordgo.Session) {
 func (n *NotificationService) NotifyServerStatusChange(update ServerStatusUpdate) error {
 	var targetChannelID string
 	var channelType string
-	
+
 	// Determine target channel - use provided channel ID or create DM
 	if update.ChannelID != "" {
 		targetChannelID = update.ChannelID
@@ -89,7 +89,7 @@ func (n *NotificationService) NotifyServerStatusChange(update ServerStatusUpdate
 
 	// Log the notification
 	if n.logging != nil {
-		log.Printf("Sent status notification to user %s for server %s via %s: %s -> %s", 
+		log.Printf("Sent status notification to user %s for server %s via %s: %s -> %s",
 			update.UserID, update.ServerName, channelType, update.PreviousStatus, update.NewStatus)
 	}
 

@@ -68,7 +68,7 @@ func (c *CreateServerCommand) Execute(ctx *CommandContext) error {
 	// Parse arguments and flags
 	var gameType, serverName string
 	var notifyInChannel bool
-	
+
 	args := make([]string, 0)
 	for _, arg := range ctx.Args {
 		if arg == "--here" {
@@ -77,11 +77,11 @@ func (c *CreateServerCommand) Execute(ctx *CommandContext) error {
 			args = append(args, arg)
 		}
 	}
-	
+
 	if len(args) == 0 {
 		return fmt.Errorf("game type is required")
 	}
-	
+
 	gameType = strings.ToLower(args[0])
 	serverName = fmt.Sprintf("%s-%s", gameType, ctx.Message.Author.Username)
 	if len(args) > 1 {

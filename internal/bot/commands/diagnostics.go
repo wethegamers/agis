@@ -58,7 +58,7 @@ func (c *DiagnosticsCommand) Execute(ctx *CommandContext) error {
 	// Get the server using enhanced service for live data
 	var server *services.GameServer
 	var err error
-	
+
 	if ctx.EnhancedServer != nil {
 		server, err = ctx.EnhancedServer.GetEnhancedServerInfo(ctx.Context, serverName, ctx.Message.Author.ID)
 	} else {
@@ -230,10 +230,10 @@ func (c *DiagnosticsCommand) Execute(ctx *CommandContext) error {
 	// Add Kubernetes information if available
 	if server.KubernetesUID != "" && ctx.EnhancedServer != nil {
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:   "🔗 Kubernetes Info",
-			Value:  fmt.Sprintf("**UID:** `%s`\n**Agones Status:** %s\n**Last Sync:** %s", 
-				server.KubernetesUID[:8]+"...", 
-				server.AgonesStatus, 
+			Name: "🔗 Kubernetes Info",
+			Value: fmt.Sprintf("**UID:** `%s`\n**Agones Status:** %s\n**Last Sync:** %s",
+				server.KubernetesUID[:8]+"...",
+				server.AgonesStatus,
 				formatSyncTime(server.LastStatusSync)),
 			Inline: false,
 		})
@@ -351,10 +351,10 @@ func formatSyncTime(syncTime *time.Time) string {
 	if syncTime == nil || syncTime.IsZero() {
 		return "Never"
 	}
-	
+
 	now := time.Now()
 	diff := now.Sub(*syncTime)
-	
+
 	if diff < time.Minute {
 		return fmt.Sprintf("%.0f seconds ago", diff.Seconds())
 	} else if diff < time.Hour {

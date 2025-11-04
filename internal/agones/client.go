@@ -134,12 +134,12 @@ func (c *Client) GetGameServerStatus(ctx context.Context) (*GameServerStatus, er
 	}
 
 	status := &GameServerStatus{
-		Total:     len(gameServers.Items),
-		Ready:     0,
-		Allocated: 0,
-		Reserved:  0,
-		Shutdown:  0,
-		Error:     0,
+		Total:       len(gameServers.Items),
+		Ready:       0,
+		Allocated:   0,
+		Reserved:    0,
+		Shutdown:    0,
+		Error:       0,
 		GameServers: make([]GameServerInfo, 0),
 	}
 
@@ -273,11 +273,11 @@ func (c *Client) HealthCheck(ctx context.Context) error {
 	_, err := c.clientset.AgonesV1().GameServers(c.namespace).List(ctx, metav1.ListOptions{
 		Limit: 1,
 	})
-	
+
 	if err != nil {
 		return fmt.Errorf("agones health check failed: %w", err)
 	}
-	
+
 	log.Printf("Agones client health check passed for namespace: %s", c.namespace)
 	return nil
 }

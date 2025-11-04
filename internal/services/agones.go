@@ -88,7 +88,7 @@ func NewAgonesService() (*AgonesService, error) {
 func (a *AgonesService) AllocateGameServer(ctx context.Context, gameType, serverName, userID string) (*GameServerInfo, error) {
 	// Determine which fleet to use based on game type
 	fleetName := a.getFleetName(gameType)
-	
+
 	// Create GameServerAllocation
 	allocation := &allocationv1.GameServerAllocation{
 		ObjectMeta: metav1.ObjectMeta{
@@ -214,7 +214,7 @@ func (a *AgonesService) DeleteGameServerByUID(ctx context.Context, uid string) e
 	if err != nil {
 		return fmt.Errorf("failed to find GameServer with UID %s: %v", uid, err)
 	}
-	
+
 	// Delete by name
 	return a.DeleteGameServer(ctx, gsInfo.Name)
 }
@@ -251,7 +251,8 @@ func (a *AgonesService) WatchGameServerStatus(ctx context.Context, uid string, c
 func (a *AgonesService) getFleetName(gameType string) string {
 	switch gameType {
 	case "minecraft":
-		return "wtg-free-fleet" // or wtg-premium-fleet based on user tier
+		// Use the development test fleet; adjust per environment via Vault/secret if needed
+		return "agis-dev-fleet"
 	case "cs2":
 		return "wtg-premium-fleet"
 	case "terraria":

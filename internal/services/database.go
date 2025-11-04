@@ -2,6 +2,7 @@ package services
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -387,6 +388,8 @@ func (d *DatabaseService) AddCredits(discordID string, amount int) error {
 }
 
 // ProcessAdConversion credits the user if the conversion id is new (idempotent)
+var ErrDuplicate = errors.New("duplicate conversion")
+
 func (d *DatabaseService) ProcessAdConversion(uid string, amount int, conversionID, source string) error {
 	if d.localMode {
 		d.localMutex.Lock()
@@ -411,7 +414,7 @@ func (d *DatabaseService) ProcessAdConversion(uid string, amount int, conversion
 	var existing string
 	err := d.db.QueryRow(`SELECT conversion_id FROM ad_conversions WHERE conversion_id=$1`, conversionID).Scan(&existing)
 	if err == nil {
-		return nil
+		return ErrDuplicate
 	}
 	// credit and insert within a transaction
 	tx, err := d.db.Begin()

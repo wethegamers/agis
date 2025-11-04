@@ -34,13 +34,13 @@ func (e *EnhancedServerService) CreateGameServer(ctx context.Context, userID, ga
 	// Create database record first
 	server := &GameServer{
 		DiscordID:      userID,
-		Name:          serverName,
-		GameType:      gameType,
-		Status:        "pending",
-		CostPerHour:   costPerHour,
-		IsPublic:      false,
-		Description:   fmt.Sprintf("A %s server", gameType),
-		AgonesStatus:  "Pending",
+		Name:           serverName,
+		GameType:       gameType,
+		Status:         "pending",
+		CostPerHour:    costPerHour,
+		IsPublic:       false,
+		Description:    fmt.Sprintf("A %s server", gameType),
+		AgonesStatus:   "Pending",
 		LastStatusSync: &time.Time{}, // Initialize with epoch
 	}
 
@@ -88,11 +88,11 @@ func (e *EnhancedServerService) allocateServerAsync(ctx context.Context, server 
 	agonesInfo, err := e.agones.AllocateGameServer(ctx, server.GameType, server.Name, server.DiscordID)
 	if err != nil {
 		log.Printf("Failed to allocate GameServer for %s: %v", server.Name, err)
-		
+
 		// Update database with error
 		e.db.UpdateServerStatus(server.Name, server.DiscordID, "error")
 		e.db.UpdateServerError(server.Name, server.DiscordID, err.Error())
-		
+
 		// Notify user of error
 		if channelID != "" {
 			e.notifications.NotifyServerErrorInChannel(server.DiscordID, server.Name, server.GameType, err.Error(), channelID)
@@ -151,7 +151,7 @@ func (e *EnhancedServerService) monitorGameServerStatus(ctx context.Context, ser
 			statusString := e.mapAgonesStatusToUserFriendly(info.Status)
 			if statusString != lastNotifiedStatus {
 				lastNotifiedStatus = statusString
-				
+
 				update := ServerStatusUpdate{
 					ServerName:     server.Name,
 					UserID:         server.DiscordID,
@@ -165,13 +165,13 @@ func (e *EnhancedServerService) monitorGameServerStatus(ctx context.Context, ser
 				if info.Status == agonesv1.GameServerStateReady || info.Status == agonesv1.GameServerStateAllocated {
 					update.Address = info.Address
 					update.Port = info.Port
-					
+
 					// Update database with connection info
 					e.db.UpdateServerAddress(server.Name, server.DiscordID, info.Address, int(info.Port))
 					e.db.UpdateServerStatus(server.Name, server.DiscordID, "ready")
-					
+
 					log.Printf("GameServer %s is ready! Address: %s:%d", server.Name, info.Address, info.Port)
-					
+
 					// Send final notification and stop monitoring
 					e.notifications.NotifyServerStatusChange(update)
 					return
@@ -193,15 +193,15 @@ func (e *EnhancedServerService) monitorGameServerStatus(ctx context.Context, ser
 // handleServerTimeout handles when a server takes too long to become ready
 func (e *EnhancedServerService) handleServerTimeout(server *GameServer, channelID string) {
 	log.Printf("GameServer %s timed out during allocation", server.Name)
-	
+
 	e.db.UpdateServerStatus(server.Name, server.DiscordID, "error")
 	e.db.UpdateServerError(server.Name, server.DiscordID, "Server allocation timed out after 10 minutes")
-	
+
 	if channelID != "" {
-		e.notifications.NotifyServerErrorInChannel(server.DiscordID, server.Name, server.GameType, 
+		e.notifications.NotifyServerErrorInChannel(server.DiscordID, server.Name, server.GameType,
 			"Server took too long to start up. Please try again or contact support.", channelID)
 	} else {
-		e.notifications.NotifyServerError(server.DiscordID, server.Name, server.GameType, 
+		e.notifications.NotifyServerError(server.DiscordID, server.Name, server.GameType,
 			"Server took too long to start up. Please try again or contact support.")
 	}
 }
