@@ -248,6 +248,21 @@ func (a *AgonesService) WatchGameServerStatus(ctx context.Context, uid string, c
 
 // Helper methods
 
+// FindGameServerByServerName finds a GameServer by our label wtg.cluster/server-name
+func (a *AgonesService) FindGameServerByServerName(ctx context.Context, serverName string) (*GameServerInfo, error) {
+	selector := fmt.Sprintf("wtg.cluster/server-name=%s", serverName)
+	gsList, err := a.agonesClient.AgonesV1().GameServers(a.namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list GameServers: %v", err)
+	}
+	if len(gsList.Items) == 0 {
+		return nil, fmt.Errorf("no GameServer found for %s", serverName)
+	}
+	gs := gsList.Items[0]
+	info := a.gameServerToInfo(&gs)
+	return info, nil
+}
+
 func (a *AgonesService) getFleetName(gameType string) string {
 	switch gameType {
 	case "minecraft":

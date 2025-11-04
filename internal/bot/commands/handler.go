@@ -114,6 +114,7 @@ func (h *CommandHandler) registerCommands() {
 	h.Register(&AdminStatusCommand{})
 	h.Register(&AdminRestartCommand{})
 	h.Register(&LogChannelCommand{})
+	h.Register(&AdoptCommand{})
 
 	// Owner commands
 	h.Register(&OwnerCommand{})
