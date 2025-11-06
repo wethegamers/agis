@@ -177,6 +177,42 @@ func main() {
 	commandHandler = commands.NewCommandHandler(cfg, dbService, loggingService)
 	log.Println("✅ Modular command system initialized")
 
+	// Wire user servers provider for WordPress dashboard API
+	http.SetUserServersProvider(func(ctx context.Context, discordID string) ([]http.DashboardServer, error) {
+		var (
+			servers []*services.GameServer
+			err     error
+		)
+		if commandHandler != nil && commandHandler.EnhancedService() != nil {
+			servers, err = commandHandler.EnhancedService().GetUserServersEnhanced(ctx, discordID)
+		} else {
+			servers, err = dbService.GetUserServers(discordID)
+		}
+		if err != nil {
+			return nil, err
+		}
+		out := make([]http.DashboardServer, 0, len(servers))
+		for _, s := range servers {
+			ds := http.DashboardServer{
+				ID:        s.ID,
+				Name:      s.Name,
+				Game:      s.GameType,
+				Address:   s.Address,
+				Port:      s.Port,
+				Status:    s.Status,
+				Region:    "",
+				Players:   http.PlayersInfo{Current: 0, Max: 0},
+				ConnectURL: "",
+				ManageURL:  "",
+			}
+			if !s.CreatedAt.IsZero() {
+				ds.CreatedAt = s.CreatedAt.Format(time.RFC3339)
+			}
+			out = append(out, ds)
+		}
+		return out, nil
+	})
+
 	// Initialize event handlers for verified role protection
 	eventHandlers := bot.NewEventHandlers(loggingService, cfg.Roles.VerifiedRoleID, cfg.Discord.GuildID)
 

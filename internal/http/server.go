@@ -25,6 +25,27 @@ type Server struct {
 	server *http.Server
 }
 
+// DashboardServer represents a server item returned to the WordPress dashboard
+type DashboardServer struct {
+	ID         interface{} `json:"id,omitempty"`
+	Name       string      `json:"name"`
+	Game       string      `json:"game,omitempty"`
+	Address    string      `json:"address,omitempty"`
+	Port       int         `json:"port,omitempty"`
+	Status     string      `json:"status,omitempty"`
+	Players    PlayersInfo `json:"players,omitempty"`
+	Region     string      `json:"region,omitempty"`
+	CreatedAt  string      `json:"created_at,omitempty"`
+	ConnectURL string      `json:"connect_url,omitempty"`
+	ManageURL  string      `json:"manage_url,omitempty"`
+}
+
+// PlayersInfo represents current/max players
+type PlayersInfo struct {
+	Current int `json:"current,omitempty"`
+	Max     int `json:"max,omitempty"`
+}
+
 // Integration hooks and config (set from main)
 var (
 	// OnRewardWithConversion is called when a valid ad callback is received (idempotent handler).
@@ -41,13 +62,16 @@ var (
 	videoPlacementID string
 
 	// Discord session and verification API config
-	discordSession   *discordgo.Session
-	loggingService   interface {
+	discordSession *discordgo.Session
+	loggingService interface {
 		LogAudit(userID, action, message string, details map[string]interface{})
 	}
-	verifyAPISecret  string
-	verifyGuildID    string
-	verifiedRoleID   string
+	verifyAPISecret string
+	verifyGuildID   string
+	verifiedRoleID  string
+
+	// Provider for user servers exposed to WordPress dashboard
+	userServersProvider func(ctx context.Context, discordID string) ([]DashboardServer, error)
 )
 
 // SetAdsCallbackToken sets the shared callback token for ad callbacks
@@ -90,6 +114,9 @@ func NewServer() *Server {
 
 	// Verification API
 	mux.HandleFunc("/api/verify-user", verifyUserHandler)
+
+	// User servers API for WordPress dashboard
+	mux.HandleFunc("/api/user-servers", userServersHandler)
 
 	// Ads landing page
 	mux.HandleFunc("/ads", adsPageHandler)
@@ -156,12 +183,13 @@ func infoHandler(w http.ResponseWriter, r *http.Request) {
 		"description": "WTG Agones GameServer Management Bot",
 		"build":       buildInfo,
 		"endpoints": map[string]string{
-			"/health":          "Health check endpoint",
-			"/ready":           "Readiness check endpoint",
-			"/info":            "Service information and build details",
-			"/version":         "Version information only",
-			"/metrics":         "Prometheus metrics",
-			"/api/verify-user": "Assign Verified role to a Discord user (POST)",
+			"/health":            "Health check endpoint",
+			"/ready":             "Readiness check endpoint",
+			"/info":              "Service information and build details",
+			"/version":           "Version information only",
+			"/metrics":           "Prometheus metrics",
+			"/api/verify-user":   "Assign Verified role to a Discord user (POST)",
+			"/api/user-servers":  "List the current user's servers (GET; header X-WTG-Secret required)",
 		},
 	}
 
@@ -281,6 +309,11 @@ func SetVerifyAPI(secret, guildID, roleID string) {
 	verifiedRoleID = roleID
 }
 
+// SetUserServersProvider wires a provider used by /api/user-servers to fetch data
+func SetUserServersProvider(f func(ctx context.Context, discordID string) ([]DashboardServer, error)) {
+	userServersProvider = f
+}
+
 // verifyUserHandler handles POST /api/verify-user to assign the Verified role
 // Expects JSON body: {"discord_id": "123...", "username": "optional"}
 // Expects header: X-WTG-Secret: <shared_secret>
@@ -398,6 +431,48 @@ func verifyUserHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// userServersHandler handles GET /api/user-servers to list a user's servers for the dashboard
+func userServersHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "method_not_allowed"})
+		return
+	}
+
+	if verifyAPISecret == "" || userServersProvider == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "not_configured"})
+		return
+	}
+
+	providedSecret := r.Header.Get("X-WTG-Secret")
+	if providedSecret == "" || subtle.ConstantTimeCompare([]byte(providedSecret), []byte(verifyAPISecret)) != 1 {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	discordID := r.URL.Query().Get("discord_id")
+	if discordID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing_discord_id"})
+		return
+	}
+
+	servers, err := userServersProvider(r.Context(), discordID)
+	if err != nil {
+		log.Printf("user-servers: provider error: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "provider_error"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "data": servers})
+}
+
 // Minimal ads landing page (HTML)
 func adsPageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -471,6 +546,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 			"/version",
 			"/metrics",
 			"/api/verify-user",
+			"/api/user-servers",
 		},
 	})
 }

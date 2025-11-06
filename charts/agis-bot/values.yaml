@@ -54,6 +54,13 @@ ingress:
     - secretName: agis-bot-tls
       hosts:
         - bot-api.wethegamers.org
+  # Public API ingress for WordPress dashboard integration
+  api:
+    enabled: true
+    host: api.wethegamers.org
+    rateLimit:
+      rps: 10
+      burstMultiplier: 2
 
 resources:
   # We usually recommend not to specify default resources and to leave this as a conscious

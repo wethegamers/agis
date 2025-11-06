@@ -124,6 +124,11 @@ func (h *CommandHandler) Register(cmd Command) {
 	h.commands[strings.ToLower(cmd.Name())] = cmd
 }
 
+// EnhancedService returns the EnhancedServerService (may be nil if Agones unavailable)
+func (h *CommandHandler) EnhancedService() *services.EnhancedServerService {
+	return h.enhancedServer
+}
+
 func (h *CommandHandler) HandleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Ignore messages from bots
 	if m.Author.Bot {
