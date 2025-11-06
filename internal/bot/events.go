@@ -45,15 +45,6 @@ func (eh *EventHandlers) HandleGuildMemberUpdate(s *discordgo.Session, event *di
 	log.Printf("[DEBUG] BeforeUpdate: %+v", event.BeforeUpdate)
 	log.Printf("[DEBUG] Current roles: %v", event.Member.Roles)
 
-	// Check if user previously had verified role
-	hadVerifiedRole := false
-	for _, roleID := range event.BeforeUpdate.Roles {
-		if roleID == eh.verifiedRoleID {
-			hadVerifiedRole = true
-			break
-		}
-	}
-
 	// Check if user currently has verified role
 	hasVerifiedRole := false
 	for _, roleID := range event.Member.Roles {
@@ -62,6 +53,35 @@ func (eh *EventHandlers) HandleGuildMemberUpdate(s *discordgo.Session, event *di
 			break
 		}
 	}
+	
+	// If user doesn't have verified role, check if they should (query from State or assume they should)
+	// Since we want "sticky", we'll check the State cache to see if they had it before
+	hadVerifiedRole := false
+	
+	// Try to get previous state from session cache
+	if event.BeforeUpdate != nil && event.BeforeUpdate.Roles != nil {
+		for _, roleID := range event.BeforeUpdate.Roles {
+			if roleID == eh.verifiedRoleID {
+				hadVerifiedRole = true
+				break
+			}
+		}
+	} else {
+		// BeforeUpdate not available, check State cache
+		if s.State != nil {
+			member, err := s.State.Member(event.GuildID, event.User.ID)
+			if err == nil && member != nil {
+				for _, roleID := range member.Roles {
+					if roleID == eh.verifiedRoleID {
+						hadVerifiedRole = true
+						break
+					}
+				}
+			}
+		}
+	}
+	
+	log.Printf("[DEBUG] hadVerifiedRole: %v, hasVerifiedRole: %v", hadVerifiedRole, hasVerifiedRole)
 
 	// If user had verified role but now doesn't, re-add it (make it sticky)
 	if hadVerifiedRole && !hasVerifiedRole {

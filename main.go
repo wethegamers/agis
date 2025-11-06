@@ -129,6 +129,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create Discord session: %v", err)
 	}
+	
+	// Enable state tracking for member updates (required for BeforeUpdate)
+	session.StateEnabled = true
+	session.State.TrackMembers = true
+	session.State.TrackRoles = true
 
 	// Initialize database service
 	dbService, err := services.NewDatabaseService(cfg)
