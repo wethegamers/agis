@@ -42,6 +42,9 @@ var (
 
 	// Discord session and verification API config
 	discordSession   *discordgo.Session
+	loggingService   interface {
+		LogAudit(userID, action, message string, details map[string]interface{})
+	}
 	verifyAPISecret  string
 	verifyGuildID    string
 	verifiedRoleID   string
@@ -264,6 +267,13 @@ func verifyAyetSignature(apiKey, externalIdentifier, currency, conversionID, c1,
 // SetDiscordSessionForAPI wires the Discord session for API handlers
 func SetDiscordSessionForAPI(s *discordgo.Session) { discordSession = s }
 
+// SetLoggingServiceForAPI wires the logging service for API handlers
+func SetLoggingServiceForAPI(ls interface {
+	LogAudit(userID, action, message string, details map[string]interface{})
+}) {
+	loggingService = ls
+}
+
 // SetVerifyAPI configures the verification API
 func SetVerifyAPI(secret, guildID, roleID string) {
 	verifyAPISecret = secret
@@ -361,6 +371,26 @@ func verifyUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	log.Printf("verify-user: successfully verified user %s (%s)", payload.DiscordID, payload.Username)
+	
+	// Log to audit channel
+	if loggingService != nil {
+		userTag := payload.Username
+		if userTag == "" && member.User != nil {
+			userTag = fmt.Sprintf("%s#%s", member.User.Username, member.User.Discriminator)
+		}
+		loggingService.LogAudit(
+			payload.DiscordID,
+			"user_verified",
+			fmt.Sprintf("✅ User %s has been verified via API", userTag),
+			map[string]interface{}{
+				"user_id":  payload.DiscordID,
+				"username": userTag,
+				"source":   "wordpress_api",
+				"action":   "verified_role_assigned",
+			},
+		)
+	}
+	
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,

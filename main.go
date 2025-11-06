@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"agis-bot/internal/bot"
 	"agis-bot/internal/bot/commands"
 	"agis-bot/internal/config"
 	"agis-bot/internal/http"
@@ -130,7 +131,11 @@ func main() {
 	}
 	log.Println("✅ Database service initialized")
 
-// Wire ad callback token and handler (credits reward from ayet)
+	// Initialize logging service
+	loggingService := services.NewLoggingService(dbService, session, "") // Guild ID will be set later
+	log.Println("✅ Logging service initialized")
+
+	// Wire ad callback token and handler (credits reward from ayet)
 	http.SetAdsCallbackToken(cfg.Ads.AyetCallbackToken)
 	http.SetAdsAPIKey(cfg.Ads.AyetAPIKey)
 	http.SetAdsLinks(cfg.Ads.OfferwallURL, cfg.Ads.SurveywallURL, cfg.Ads.VideoPlacementID)
@@ -141,13 +146,10 @@ func main() {
 		}
 		return err
 	}
-	// Wire verification API config and Discord session
+	// Wire verification API config, Discord session, and logging
 	http.SetVerifyAPI(cfg.Roles.VerifyAPISecret, cfg.Discord.GuildID, cfg.Roles.VerifiedRoleID)
 	http.SetDiscordSessionForAPI(session)
-
-	// Initialize logging service
-	loggingService := services.NewLoggingService(dbService, session, "") // Guild ID will be set later
-	log.Println("✅ Logging service initialized")
+	http.SetLoggingServiceForAPI(loggingService)
 
 	// Load log channels from environment variables
 	loggingService.LoadChannelConfigFromEnv()
@@ -164,9 +166,13 @@ func main() {
 	commandHandler := commands.NewCommandHandler(cfg, dbService, loggingService)
 	log.Println("✅ Modular command system initialized")
 
+	// Initialize event handlers for verified role protection
+	eventHandlers := bot.NewEventHandlers(loggingService, cfg.Roles.VerifiedRoleID, cfg.Discord.GuildID)
+
 	// Register event handlers (message-based)
 	session.AddHandler(commandHandler.HandleMessage)
 	session.AddHandler(ready)
+	session.AddHandler(eventHandlers.HandleGuildMemberUpdate)
 
 	// Register slash commands and interaction handler
 	session.AddHandler(commandHandler.HandleInteraction)
@@ -180,8 +186,8 @@ func main() {
 		}
 	}
 
-	// Set bot intents - include message content intent for reading message content and guild state
-	session.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages | discordgo.IntentMessageContent | discordgo.IntentsGuilds
+	// Set bot intents - include message content, guild state, and guild members for role monitoring
+	session.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages | discordgo.IntentMessageContent | discordgo.IntentsGuilds | discordgo.IntentsGuildMembers
 
 	// Open connection
 	err = session.Open()
