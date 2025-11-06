@@ -272,63 +272,100 @@ func SetVerifyAPI(secret, guildID, roleID string) {
 }
 
 // verifyUserHandler handles POST /api/verify-user to assign the Verified role
+// Expects JSON body: {"discord_id": "123...", "username": "optional"}
+// Expects header: X-WTG-Secret: <shared_secret>
 func verifyUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "method_not_allowed"})
 		return
 	}
+	
+	// Check if API is configured
 	if discordSession == nil || verifyGuildID == "" || verifiedRoleID == "" || verifyAPISecret == "" {
+		log.Println("verify-user: API not configured")
 		w.WriteHeader(http.StatusServiceUnavailable)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "not_configured"})
 		return
 	}
-	var payload struct {
-		Secret    string `json:"secret"`
-		DiscordID string `json:"discord_id"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid_json"})
+	
+	// Verify secret from header
+	providedSecret := r.Header.Get("X-WTG-Secret")
+	if providedSecret == "" {
+		log.Println("verify-user: missing X-WTG-Secret header")
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing_secret"})
 		return
 	}
-	// If a secret is provided but does not match, return 401 (even if other fields are malformed)
-	if payload.Secret != "" && subtle.ConstantTimeCompare([]byte(payload.Secret), []byte(verifyAPISecret)) != 1 {
+	
+	if subtle.ConstantTimeCompare([]byte(providedSecret), []byte(verifyAPISecret)) != 1 {
+		log.Println("verify-user: invalid secret")
 		w.WriteHeader(http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
 		return
 	}
-	// Validate required fields
-	if payload.Secret == "" || payload.DiscordID == "" {
+	
+	// Parse request body
+	var payload struct {
+		DiscordID string `json:"discord_id"`
+		Username  string `json:"username"` // optional
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		log.Printf("verify-user: invalid JSON: %v", err)
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing_fields"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid_json"})
 		return
 	}
-	// Ensure member exists
+	
+	// Validate required fields
+	if payload.DiscordID == "" {
+		log.Println("verify-user: missing discord_id")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing_discord_id"})
+		return
+	}
+	
+	log.Printf("verify-user: processing request for Discord ID: %s (username: %s)", payload.DiscordID, payload.Username)
+	
+	// Ensure member exists in the guild
 	member, err := discordSession.GuildMember(verifyGuildID, payload.DiscordID)
 	if err != nil || member == nil || member.User == nil {
+		log.Printf("verify-user: member not found: %v", err)
 		w.WriteHeader(http.StatusNotFound)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "member_not_found"})
 		return
 	}
-	// If already has role, return ok
+	
+	// Check if member already has the verified role
 	for _, rID := range member.Roles {
 		if strings.EqualFold(rID, verifiedRoleID) {
+			log.Printf("verify-user: user %s already has verified role", payload.DiscordID)
 			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": true,
+				"message": "already_verified",
+			})
 			return
 		}
 	}
-	// Attempt to add role
+	
+	// Add the verified role
 	if err := discordSession.GuildMemberRoleAdd(verifyGuildID, payload.DiscordID, verifiedRoleID); err != nil {
 		log.Printf("verify-user: failed to add role: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "internal"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed_to_add_role"})
 		return
 	}
+	
+	log.Printf("verify-user: successfully verified user %s (%s)", payload.DiscordID, payload.Username)
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "role_assigned",
+	})
 }
 
 // Minimal ads landing page (HTML)
