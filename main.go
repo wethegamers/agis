@@ -23,6 +23,12 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+// Global variables for ready handler
+var (
+	commandHandler *commands.CommandHandler
+	cfg            *config.Config
+)
+
 // Prometheus metrics
 var (
 	commandsExecuted = prometheus.NewCounterVec(
@@ -63,7 +69,7 @@ var (
 
 func main() {
 	// Load configuration from .env file
-	cfg := config.Load()
+	cfg = config.Load()
 
 	// Register Prometheus metrics
 	prometheus.MustRegister(commandsExecuted)
@@ -163,7 +169,7 @@ func main() {
 	log.Println("✅ Cleanup service started")
 
 	// Initialize modular command handler
-	commandHandler := commands.NewCommandHandler(cfg, dbService, loggingService)
+	commandHandler = commands.NewCommandHandler(cfg, dbService, loggingService)
 	log.Println("✅ Modular command system initialized")
 
 	// Initialize event handlers for verified role protection
@@ -174,17 +180,8 @@ func main() {
 	session.AddHandler(ready)
 	session.AddHandler(eventHandlers.HandleGuildMemberUpdate)
 
-	// Register slash commands and interaction handler
+	// Register interaction handler
 	session.AddHandler(commandHandler.HandleInteraction)
-	if _, err := commandHandler.RegisterSlashCommands(session, cfg.Discord.GuildID); err != nil {
-		log.Printf("⚠️ Failed to register slash commands: %v", err)
-	} else {
-		if cfg.Discord.GuildID != "" {
-			log.Println("✅ Registered guild slash commands")
-		} else {
-			log.Println("✅ Registered global slash commands")
-		}
-	}
 
 	// Set bot intents - include message content, guild state, and guild members for role monitoring
 	session.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages | discordgo.IntentMessageContent | discordgo.IntentsGuilds | discordgo.IntentsGuildMembers
@@ -230,5 +227,16 @@ func ready(s *discordgo.Session, event *discordgo.Ready) {
 	err := s.UpdateGameStatus(0, "🎯 Managing WTG Cluster")
 	if err != nil {
 		log.Printf("Failed to set bot status: %v", err)
+	}
+
+	// Register slash commands now that session is authenticated
+	if _, err := commandHandler.RegisterSlashCommands(s, cfg.Discord.GuildID); err != nil {
+		log.Printf("⚠️ Failed to register slash commands: %v", err)
+	} else {
+		if cfg.Discord.GuildID != "" {
+			log.Println("✅ Registered guild slash commands")
+		} else {
+			log.Println("✅ Registered global slash commands")
+		}
 	}
 }
