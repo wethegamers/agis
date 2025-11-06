@@ -28,15 +28,22 @@ func NewEventHandlers(loggingService *services.LoggingService, verifiedRoleID, g
 // HandleGuildMemberUpdate monitors role changes and makes verified role sticky
 // If a verified user has their role removed, it will be automatically re-added
 func (eh *EventHandlers) HandleGuildMemberUpdate(s *discordgo.Session, event *discordgo.GuildMemberUpdate) {
+	log.Printf("[DEBUG] GuildMemberUpdate event received for user %s in guild %s", event.User.ID, event.GuildID)
+	
 	// Skip if verified role is not configured
 	if eh.verifiedRoleID == "" {
+		log.Printf("[DEBUG] Verified role ID not configured, skipping")
 		return
 	}
 
 	// Skip if not in configured guild
 	if event.GuildID != eh.guildID {
+		log.Printf("[DEBUG] Event from different guild (%s vs %s), skipping", event.GuildID, eh.guildID)
 		return
 	}
+	
+	log.Printf("[DEBUG] BeforeUpdate: %+v", event.BeforeUpdate)
+	log.Printf("[DEBUG] Current roles: %v", event.Member.Roles)
 
 	// Check if user previously had verified role
 	hadVerifiedRole := false
