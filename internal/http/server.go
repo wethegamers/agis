@@ -293,14 +293,16 @@ func verifyUserHandler(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid_json"})
 		return
 	}
+	// If a secret is provided but does not match, return 401 (even if other fields are malformed)
+	if payload.Secret != "" && subtle.ConstantTimeCompare([]byte(payload.Secret), []byte(verifyAPISecret)) != 1 {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+	// Validate required fields
 	if payload.Secret == "" || payload.DiscordID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing_fields"})
-		return
-	}
-	if subtle.ConstantTimeCompare([]byte(payload.Secret), []byte(verifyAPISecret)) != 1 {
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
 		return
 	}
 	// Ensure member exists
