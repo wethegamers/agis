@@ -93,6 +93,27 @@ func (h *CommandHandler) HandleInteraction(s *discordgo.Session, i *discordgo.In
 
 	data := i.ApplicationCommandData()
 	name := strings.ToLower(data.Name)
+
+	// Enforce Verified role if configured (allow minimal public set)
+	if h != nil && h.config != nil && h.config.Roles.VerifiedRoleID != "" && i.GuildID != "" {
+		allowed := map[string]bool{
+			"help":         true,
+			"manual":       true,
+			"man":          true,
+			"credits":      true,
+			"credits_earn": true,
+			"ping":         true,
+		}
+		if i.Member != nil && i.Member.User != nil {
+			if !h.permissions.IsVerified(s, i.GuildID, i.Member.User.ID) && !allowed[name] {
+				_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{Content: "❌ You must be Verified to use this command. Visit the dashboard to request access."},
+				})
+				return
+			}
+		}
+	}
 	var args []string
 	if len(data.Options) > 0 {
 		if name == "adopt" {

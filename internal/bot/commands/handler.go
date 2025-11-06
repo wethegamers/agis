@@ -158,8 +158,24 @@ func (h *CommandHandler) HandleMessage(s *discordgo.Session, m *discordgo.Messag
 		h.db.RecordCommandUsage(m.Author.ID, commandName)
 	}
 
-	// Get user permission level
+// Get user permission level
 	userPerm := h.permissions.GetUserPermission(s, m.GuildID, m.Author.ID)
+
+	// Enforce Verified role if configured (allow a minimal public set)
+	if h.config != nil && h.config.Roles.VerifiedRoleID != "" && m.GuildID != "" {
+		allowed := map[string]bool{
+			"help":         true,
+			"manual":       true,
+			"man":          true,
+			"credits":      true,
+			"credits_earn": true,
+			"ping":         true,
+		}
+		if !h.permissions.IsVerified(s, m.GuildID, m.Author.ID) && !allowed[commandName] {
+			h.sendError(s, m, "You must be Verified to use this command. Visit the dashboard to request access.")
+			return
+		}
+	}
 
 	// Find and execute command
 	if cmd, exists := h.commands[commandName]; exists {

@@ -99,6 +99,23 @@ func (p *PermissionChecker) isModRole(roleID string) bool {
 	return false
 }
 
+// IsVerified checks if user has the verified member role
+func (p *PermissionChecker) IsVerified(s *discordgo.Session, guildID, userID string) bool {
+	if p.config.Roles.VerifiedRoleID == "" {
+		return false
+	}
+	member, err := s.GuildMember(guildID, userID)
+	if err != nil {
+		return false
+	}
+	for _, roleID := range member.Roles {
+		if strings.EqualFold(roleID, p.config.Roles.VerifiedRoleID) {
+			return true
+		}
+	}
+	return false
+}
+
 // GetPermissionString returns a human-readable permission level
 func GetPermissionString(perm Permission) string {
 	switch perm {

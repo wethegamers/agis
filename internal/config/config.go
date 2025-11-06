@@ -41,8 +41,10 @@ type WTGConfig struct {
 }
 
 type RoleConfig struct {
-	AdminRoles []string
-	ModRoles   []string
+	AdminRoles     []string
+	ModRoles       []string
+	VerifiedRoleID string
+	VerifyAPISecret string
 }
 
 type AdsConfig struct {
@@ -79,8 +81,10 @@ func Load() *Config {
 			DashboardURL: getEnvOrDefault("WTG_DASHBOARD_URL", "https://dashboard.wethegamers.com"),
 		},
 		Roles: RoleConfig{
-			AdminRoles: parseRoles(getEnvOrDefault("ADMIN_ROLES", "")),
-			ModRoles:   parseRoles(getEnvOrDefault("MOD_ROLES", "")),
+			AdminRoles:      parseRoles(getEnvOrDefault("ADMIN_ROLES", "")),
+			ModRoles:        parseRoles(getEnvOrDefault("MOD_ROLES", "")),
+			VerifiedRoleID: getEnvOrDefault("VERIFIED_ROLE_ID", ""),
+			VerifyAPISecret: getEnvOrDefault("VERIFY_API_SECRET", ""),
 		},
 		Ads: AdsConfig{
 			AyetAPIKey:        getEnvOrDefault("AYET_API_KEY", ""),

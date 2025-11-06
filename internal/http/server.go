@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha1"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 
 	"agis-bot/internal/version"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -37,6 +39,12 @@ var (
 	offerwallURL     string
 	surveywallURL    string
 	videoPlacementID string
+
+	// Discord session and verification API config
+	discordSession   *discordgo.Session
+	verifyAPISecret  string
+	verifyGuildID    string
+	verifiedRoleID   string
 )
 
 // SetAdsCallbackToken sets the shared callback token for ad callbacks
@@ -76,6 +84,9 @@ func NewServer() *Server {
 
 	// Ad callback (ayet-studios postback)
 	mux.HandleFunc("/ads/ayet/callback", ayetCallbackHandler)
+
+	// Verification API
+	mux.HandleFunc("/api/verify-user", verifyUserHandler)
 
 	// Ads landing page
 	mux.HandleFunc("/ads", adsPageHandler)
@@ -142,11 +153,12 @@ func infoHandler(w http.ResponseWriter, r *http.Request) {
 		"description": "WTG Agones GameServer Management Bot",
 		"build":       buildInfo,
 		"endpoints": map[string]string{
-			"/health":  "Health check endpoint",
-			"/ready":   "Readiness check endpoint",
-			"/info":    "Service information and build details",
-			"/version": "Version information only",
-			"/metrics": "Prometheus metrics",
+			"/health":          "Health check endpoint",
+			"/ready":           "Readiness check endpoint",
+			"/info":            "Service information and build details",
+			"/version":         "Version information only",
+			"/metrics":         "Prometheus metrics",
+			"/api/verify-user": "Assign Verified role to a Discord user (POST)",
 		},
 	}
 
@@ -249,6 +261,74 @@ func verifyAyetSignature(apiKey, externalIdentifier, currency, conversionID, c1,
 	return hmac.Equal([]byte(expected), []byte(sig))
 }
 
+// SetDiscordSessionForAPI wires the Discord session for API handlers
+func SetDiscordSessionForAPI(s *discordgo.Session) { discordSession = s }
+
+// SetVerifyAPI configures the verification API
+func SetVerifyAPI(secret, guildID, roleID string) {
+	verifyAPISecret = secret
+	verifyGuildID = guildID
+	verifiedRoleID = roleID
+}
+
+// verifyUserHandler handles POST /api/verify-user to assign the Verified role
+func verifyUserHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "method_not_allowed"})
+		return
+	}
+	if discordSession == nil || verifyGuildID == "" || verifiedRoleID == "" || verifyAPISecret == "" {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "not_configured"})
+		return
+	}
+	var payload struct {
+		Secret    string `json:"secret"`
+		DiscordID string `json:"discord_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid_json"})
+		return
+	}
+	if payload.Secret == "" || payload.DiscordID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing_fields"})
+		return
+	}
+	if subtle.ConstantTimeCompare([]byte(payload.Secret), []byte(verifyAPISecret)) != 1 {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+	// Ensure member exists
+	member, err := discordSession.GuildMember(verifyGuildID, payload.DiscordID)
+	if err != nil || member == nil || member.User == nil {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "member_not_found"})
+		return
+	}
+	// If already has role, return ok
+	for _, rID := range member.Roles {
+		if strings.EqualFold(rID, verifiedRoleID) {
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+			return
+		}
+	}
+	// Attempt to add role
+	if err := discordSession.GuildMemberRoleAdd(verifyGuildID, payload.DiscordID, verifiedRoleID); err != nil {
+		log.Printf("verify-user: failed to add role: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "internal"})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
 // Minimal ads landing page (HTML)
 func adsPageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -321,6 +401,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 			"/info", "/about",
 			"/version",
 			"/metrics",
+			"/api/verify-user",
 		},
 	})
 }

@@ -130,7 +130,7 @@ func main() {
 	}
 	log.Println("✅ Database service initialized")
 
-	// Wire ad callback token and handler (credits reward from ayet)
+// Wire ad callback token and handler (credits reward from ayet)
 	http.SetAdsCallbackToken(cfg.Ads.AyetCallbackToken)
 	http.SetAdsAPIKey(cfg.Ads.AyetAPIKey)
 	http.SetAdsLinks(cfg.Ads.OfferwallURL, cfg.Ads.SurveywallURL, cfg.Ads.VideoPlacementID)
@@ -141,6 +141,9 @@ func main() {
 		}
 		return err
 	}
+	// Wire verification API config and Discord session
+	http.SetVerifyAPI(cfg.Roles.VerifyAPISecret, cfg.Discord.GuildID, cfg.Roles.VerifiedRoleID)
+	http.SetDiscordSessionForAPI(session)
 
 	// Initialize logging service
 	loggingService := services.NewLoggingService(dbService, session, "") // Guild ID will be set later
