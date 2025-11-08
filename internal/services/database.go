@@ -128,6 +128,11 @@ func (d *DatabaseService) Close() error {
 	return nil
 }
 
+// DB returns the underlying database connection
+func (d *DatabaseService) DB() *sql.DB {
+	return d.db
+}
+
 func (d *DatabaseService) initDatabase() error {
 	// Create users table
 	createUsersTable := `
