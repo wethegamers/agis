@@ -200,7 +200,20 @@ func (d *DatabaseService) initDatabase() error {
 		UNIQUE(role_id, guild_id)
 	)`
 
-	tables := []string{createUsersTable, createServersTable, createPublicServersTable, createUsageTable, createRolesTable}
+	// Create user_stats table for profiles and analytics
+	createUserStatsTable := `
+	CREATE TABLE IF NOT EXISTS user_stats (
+		discord_id VARCHAR(32) PRIMARY KEY,
+		total_servers_created INTEGER DEFAULT 0,
+		total_commands_used INTEGER DEFAULT 0,
+		total_credits_earned INTEGER DEFAULT 0,
+		total_credits_spent INTEGER DEFAULT 0,
+		last_command_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (discord_id) REFERENCES users(discord_id)
+	)`
+
+	tables := []string{createUsersTable, createServersTable, createPublicServersTable, createUsageTable, createRolesTable, createUserStatsTable}
 
 	for _, table := range tables {
 		if _, err := d.db.Exec(table); err != nil {

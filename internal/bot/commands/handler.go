@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"agis-bot/internal/bot"
 	"agis-bot/internal/config"
@@ -100,6 +101,15 @@ func (h *CommandHandler) registerCommands() {
 	h.Register(&PublicLobbyCommand{})
 	h.Register(&DiagnosticsCommand{})
 	h.Register(&PingCommand{})
+	
+	// v1.3.0 New commands
+	h.Register(&RestartServerCommand{})
+	h.Register(&StartServerCommand{})
+	h.Register(&ServerLogsCommand{})
+	h.Register(&ProfileCommand{})
+	h.Register(NewInfoAboutCommand(time.Now())) // Pass bot start time
+	h.Register(&InfoGamesCommand{})
+	h.Register(&LeaderboardCommand{})
 
 	// Debug command
 	h.Register(&DebugPermissionsCommand{})

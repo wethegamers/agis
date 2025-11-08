@@ -7,7 +7,7 @@ import (
 
 var (
 	// Version is the current version of the application
-	Version = "dev"
+	Version = "v1.3.0"
 	// GitCommit is the git commit hash
 	GitCommit = "unknown"
 	// BuildDate is when the binary was built
