@@ -177,13 +177,6 @@ func main() {
 	commandHandler = commands.NewCommandHandler(cfg, dbService, loggingService)
 	log.Println("✅ Modular command system initialized")
 
-	// Initialize role sync service (sync every 10 minutes)
-	var roleSyncService *services.RoleSyncService
-	if cfg.Roles.VerifiedRoleID != "" && cfg.Discord.GuildID != "" {
-		roleSyncService = services.NewRoleSyncService(dbService.DB(), session, cfg.Discord.GuildID, cfg.Roles.VerifiedRoleID, 10*time.Minute)
-		go roleSyncService.Start()
-	}
-
 	// Wire user servers provider for WordPress dashboard API
 	http.SetUserServersProvider(func(ctx context.Context, discordID string) ([]http.DashboardServer, error) {
 		var (
@@ -242,6 +235,13 @@ func main() {
 	} else {
 		// Set Discord session for notification service
 		commandHandler.SetDiscordSession(session)
+		
+		// Initialize role sync service after Discord connection (sync every 10 minutes)
+		if cfg.Roles.VerifiedRoleID != "" && cfg.Discord.GuildID != "" {
+			roleSyncService := services.NewRoleSyncService(dbService.DB(), session, cfg.Discord.GuildID, cfg.Roles.VerifiedRoleID, 10*time.Minute)
+			go roleSyncService.Start()
+		}
+		
 		defer func() {
 			if err := session.Close(); err != nil {
 				log.Printf("Error closing Discord session: %v", err)
