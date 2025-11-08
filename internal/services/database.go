@@ -213,7 +213,108 @@ func (d *DatabaseService) initDatabase() error {
 		FOREIGN KEY (discord_id) REFERENCES users(discord_id)
 	)`
 
-	tables := []string{createUsersTable, createServersTable, createPublicServersTable, createUsageTable, createRolesTable, createUserStatsTable}
+	// v1.4.0 tables
+	createBackupsTable := `
+	CREATE TABLE IF NOT EXISTS server_backups (
+		id SERIAL PRIMARY KEY,
+		server_id INTEGER NOT NULL,
+		discord_id VARCHAR(32) NOT NULL,
+		backup_name VARCHAR(100) NOT NULL,
+		game_type VARCHAR(50) NOT NULL,
+		backup_data TEXT,
+		size_bytes BIGINT DEFAULT 0,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		expires_at TIMESTAMP,
+		FOREIGN KEY (discord_id) REFERENCES users(discord_id)
+	)`
+
+	createFavoritesTable := `
+	CREATE TABLE IF NOT EXISTS favorites (
+		id SERIAL PRIMARY KEY,
+		discord_id VARCHAR(32) NOT NULL,
+		server_id INTEGER NOT NULL,
+		added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (discord_id) REFERENCES users(discord_id),
+		UNIQUE(discord_id, server_id)
+	)`
+
+	createTransactionsTable := `
+	CREATE TABLE IF NOT EXISTS credit_transactions (
+		id SERIAL PRIMARY KEY,
+		from_user VARCHAR(32),
+		to_user VARCHAR(32) NOT NULL,
+		amount INTEGER NOT NULL,
+		transaction_type VARCHAR(20) NOT NULL,
+		description TEXT,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (to_user) REFERENCES users(discord_id)
+	)`
+
+	createShopItemsTable := `
+	CREATE TABLE IF NOT EXISTS shop_items (
+		id SERIAL PRIMARY KEY,
+		item_name VARCHAR(100) NOT NULL,
+		item_type VARCHAR(50) NOT NULL,
+		description TEXT,
+		price INTEGER NOT NULL,
+		is_active BOOLEAN DEFAULT true,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	)`
+
+	createInventoryTable := `
+	CREATE TABLE IF NOT EXISTS user_inventory (
+		id SERIAL PRIMARY KEY,
+		discord_id VARCHAR(32) NOT NULL,
+		item_id INTEGER NOT NULL,
+		quantity INTEGER DEFAULT 1,
+		purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (discord_id) REFERENCES users(discord_id),
+		FOREIGN KEY (item_id) REFERENCES shop_items(id)
+	)`
+
+	// v1.5.0 tables
+	createAchievementsTable := `
+	CREATE TABLE IF NOT EXISTS achievements (
+		id SERIAL PRIMARY KEY,
+		achievement_key VARCHAR(50) UNIQUE NOT NULL,
+		name VARCHAR(100) NOT NULL,
+		description TEXT,
+		reward_credits INTEGER DEFAULT 0,
+		icon VARCHAR(10)
+	)`
+
+	createUserAchievementsTable := `
+	CREATE TABLE IF NOT EXISTS user_achievements (
+		id SERIAL PRIMARY KEY,
+		discord_id VARCHAR(32) NOT NULL,
+		achievement_id INTEGER NOT NULL,
+		unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (discord_id) REFERENCES users(discord_id),
+		FOREIGN KEY (achievement_id) REFERENCES achievements(id),
+		UNIQUE(discord_id, achievement_id)
+	)`
+
+	createReviewsTable := `
+	CREATE TABLE IF NOT EXISTS server_reviews (
+		id SERIAL PRIMARY KEY,
+		server_id INTEGER NOT NULL,
+		reviewer_id VARCHAR(32) NOT NULL,
+		rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+		comment TEXT,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (reviewer_id) REFERENCES users(discord_id),
+		UNIQUE(server_id, reviewer_id)
+	)`
+
+	tables := []string{
+		createUsersTable, createServersTable, createPublicServersTable, 
+		createUsageTable, createRolesTable, createUserStatsTable,
+		// v1.4.0
+		createBackupsTable, createFavoritesTable, createTransactionsTable,
+		createShopItemsTable, createInventoryTable,
+		// v1.5.0  
+		createAchievementsTable, createUserAchievementsTable, createReviewsTable,
+	}
 
 	for _, table := range tables {
 		if _, err := d.db.Exec(table); err != nil {

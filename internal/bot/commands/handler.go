@@ -110,6 +110,18 @@ func (h *CommandHandler) registerCommands() {
 	h.Register(NewInfoAboutCommand(time.Now())) // Pass bot start time
 	h.Register(&InfoGamesCommand{})
 	h.Register(&LeaderboardCommand{})
+	
+	// v1.4.0 Medium priority commands
+	h.Register(&GiftCreditsCommand{})
+	h.Register(&TransactionsCommand{})
+	h.Register(&FavoriteCommand{})
+	h.Register(&SearchServersCommand{})
+	h.Register(&ShopCommand{})
+	
+	// v1.5.0 Low priority commands
+	h.Register(&AchievementsCommand{})
+	h.Register(&ReviewCommand{})
+	h.Register(&ReviewsCommand{})
 
 	// Debug command
 	h.Register(&DebugPermissionsCommand{})
