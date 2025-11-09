@@ -22,6 +22,12 @@ const (
 	PermissionOwner             // Bot owner
 )
 
+// Aliases for backward compatibility
+const (
+	PermissionMod   = PermissionDiscordMod   // Alias for PermissionDiscordMod
+	PermissionAdmin = PermissionDiscordAdmin // Alias for PermissionDiscordAdmin
+)
+
 // Bot owner Discord ID (hardcoded for security)
 const BotOwnerID = "290955794172739584"
 
