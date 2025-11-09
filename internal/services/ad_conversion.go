@@ -47,6 +47,7 @@ type AdConversionService struct {
 	db              *DatabaseService
 	consentService  *ConsentService
 	rewardAlgorithm *RewardAlgorithm
+	metrics         *AdMetrics
 	apiKey          string
 	callbackToken   string
 	localMode       bool
@@ -58,10 +59,16 @@ func NewAdConversionService(db *DatabaseService, consentService *ConsentService,
 		db:              db,
 		consentService:  consentService,
 		rewardAlgorithm: NewRewardAlgorithm(db),
+		metrics:         nil, // Will be set via SetMetrics
 		apiKey:          apiKey,
 		callbackToken:   callbackToken,
 		localMode:       db.LocalMode(),
 	}
+}
+
+// SetMetrics configures Prometheus metrics collection
+func (a *AdConversionService) SetMetrics(metrics *AdMetrics) {
+	a.metrics = metrics
 }
 
 // InitSchema creates the ad_conversions table
@@ -170,6 +177,11 @@ func (a *AdConversionService) ProcessAyetCallback(ctx context.Context, params Ay
 	// 6. Fraud detection
 	if fraudReason, isFraud := a.detectFraud(ctx, userID, params); isFraud {
 		log.Printf("🚨 Fraud detected for user %s: %s", userID, fraudReason)
+		// Record fraud metrics
+		if a.metrics != nil {
+			a.metrics.RecordFraud("ayet", fraudReason)
+			a.metrics.RecordConversion("ayet", inferType(params.Custom1), "fraud", 0, "unknown")
+		}
 		// Store but don't credit
 		return a.recordConversion(ctx, userID, params, 0, 1.0, "fraud", fraudReason)
 	}
@@ -212,6 +224,11 @@ func (a *AdConversionService) ProcessAyetCallback(ctx context.Context, params Ay
 	// 10. Credit user
 	if err := a.creditUser(ctx, userID, finalReward); err != nil {
 		return fmt.Errorf("failed to credit user: %w", err)
+	}
+
+	// Record metrics
+	if a.metrics != nil {
+		a.metrics.RecordConversion("ayet", inferType(params.Custom1), "completed", finalReward, rewardCtx.UserTier)
 	}
 
 	log.Printf("✅ Ad conversion processed: user=%s, conversion=%s, reward=%d GC (base=%d, tier=%.1fx, bonuses=%d, %s)",

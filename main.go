@@ -67,6 +67,44 @@ var (
 		},
 		[]string{"operation", "table"},
 	)
+
+	// Ad conversion metrics
+	adConversionsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "agis_ad_conversions_total",
+			Help: "Total number of ad conversions processed",
+		},
+		[]string{"provider", "type", "status"}, // provider=ayet, type=offerwall/surveywall/video, status=completed/fraud
+	)
+	adRewardsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "agis_ad_rewards_total",
+			Help: "Total Game Credits rewarded from ad conversions",
+		},
+		[]string{"provider", "type"},
+	)
+	adFraudAttemptsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "agis_ad_fraud_attempts_total",
+			Help: "Total number of detected fraud attempts",
+		},
+		[]string{"provider", "reason"}, // reason=excessive_velocity/ip_hopping/excessive_earnings
+	)
+	adCallbackLatency = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "agis_ad_callback_latency_seconds",
+			Help:    "Latency of ad callback processing in seconds",
+			Buckets: prometheus.DefBuckets, // 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10
+		},
+		[]string{"provider", "status"},
+	)
+	adConversionsByTier = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "agis_ad_conversions_by_tier_total",
+			Help: "Ad conversions broken down by user tier",
+		},
+		[]string{"tier"}, // free/premium/premium_plus
+	)
 )
 
 func main() {
@@ -79,6 +117,13 @@ func main() {
 	prometheus.MustRegister(creditsTransactions)
 	prometheus.MustRegister(activeUsers)
 	prometheus.MustRegister(databaseOperations)
+	
+	// Register ad conversion metrics
+	prometheus.MustRegister(adConversionsTotal)
+	prometheus.MustRegister(adRewardsTotal)
+	prometheus.MustRegister(adFraudAttemptsTotal)
+	prometheus.MustRegister(adCallbackLatency)
+	prometheus.MustRegister(adConversionsByTier)
 
 	// Start HTTP server with metrics, health checks, and info endpoints
 	httpServer := http.NewServer()
@@ -166,7 +211,18 @@ func main() {
 	// Wire ayeT-Studios S2S callback handler
 	ayetHandler := http.NewAyetHandler(adConversionService)
 	http.SetAyetHandler(ayetHandler)
-	log.Println("✅ Ad conversion service initialized (ayeT-Studios S2S)")
+	
+	// Initialize ad metrics collector
+	adMetrics := services.NewAdMetrics(
+		adConversionsTotal,
+		adRewardsTotal,
+		adFraudAttemptsTotal,
+		adCallbackLatency,
+		adConversionsByTier,
+	)
+	adConversionService.SetMetrics(adMetrics)
+	ayetHandler.SetMetrics(adMetrics)
+	log.Println("✅ Ad conversion service initialized (ayeT-Studios S2S with Prometheus metrics)")
 
 	// Wire ad callback token and handler (credits reward from ayet - legacy fallback)
 	http.SetAdsCallbackToken(cfg.Ads.AyetCallbackToken)

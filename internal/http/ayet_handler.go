@@ -15,13 +15,20 @@ import (
 // AyetHandler handles ayeT-Studios S2S conversion callbacks
 type AyetHandler struct {
 	adService *services.AdConversionService
+	metrics   *services.AdMetrics
 }
 
 // NewAyetHandler creates a new ayeT-Studios callback handler
 func NewAyetHandler(adService *services.AdConversionService) *AyetHandler {
 	return &AyetHandler{
 		adService: adService,
+		metrics:   nil, // Will be set via SetMetrics
 	}
+}
+
+// SetMetrics configures Prometheus metrics collection
+func (h *AyetHandler) SetMetrics(metrics *services.AdMetrics) {
+	h.metrics = metrics
 }
 
 // HandleCallback processes ayeT-Studios S2S callback
@@ -101,11 +108,18 @@ func (h *AyetHandler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		UserAgent:          r.UserAgent(),
 	}
 
-	// Process callback with timeout
+	// Process callback with timeout and latency tracking
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	err = h.adService.ProcessAyetCallback(ctx, params)
+	var err error
+	if h.metrics != nil {
+		err = h.metrics.ObserveCallbackLatency("ayet", func() error {
+			return h.adService.ProcessAyetCallback(ctx, params)
+		})
+	} else {
+		err = h.adService.ProcessAyetCallback(ctx, params)
+	}
 	if err != nil {
 		switch err {
 		case services.ErrInvalidSignature:
