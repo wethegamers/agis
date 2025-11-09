@@ -44,21 +44,23 @@ type AdConversion struct {
 
 // AdConversionService handles ad conversion callbacks and rewards
 type AdConversionService struct {
-	db             *DatabaseService
-	consentService *ConsentService
-	apiKey         string
-	callbackToken  string
-	localMode      bool
+	db              *DatabaseService
+	consentService  *ConsentService
+	rewardAlgorithm *RewardAlgorithm
+	apiKey          string
+	callbackToken   string
+	localMode       bool
 }
 
 // NewAdConversionService creates a new ad conversion service
 func NewAdConversionService(db *DatabaseService, consentService *ConsentService, apiKey, callbackToken string) *AdConversionService {
 	return &AdConversionService{
-		db:             db,
-		consentService: consentService,
-		apiKey:         apiKey,
-		callbackToken:  callbackToken,
-		localMode:      db.LocalMode(),
+		db:              db,
+		consentService:  consentService,
+		rewardAlgorithm: NewRewardAlgorithm(db),
+		apiKey:          apiKey,
+		callbackToken:   callbackToken,
+		localMode:       db.LocalMode(),
 	}
 }
 
@@ -172,15 +174,35 @@ func (a *AdConversionService) ProcessAyetCallback(ctx context.Context, params Ay
 		return a.recordConversion(ctx, userID, params, 0, 1.0, "fraud", fraudReason)
 	}
 
-	// 7. Calculate reward (convert provider currency to Game Credits)
-	baseReward := a.calculateReward(params.Currency, params.Amount)
+	// 7. Load user context for dynamic reward calculation
+	rewardCtx, err := a.rewardAlgorithm.LoadRewardContext(ctx, userID, params.Currency, params.Amount, inferType(params.Custom1))
+	if err != nil {
+		log.Printf("⚠️ Failed to load reward context for user %s: %v", userID, err)
+		// Fallback to simple calculation
+		rewardCtx = &RewardContext{
+			DiscordID:        userID,
+			UserTier:         "free",
+			IsPremium:        false,
+			ProviderCurrency: params.Currency,
+			ProviderAmount:   params.Amount,
+			ConversionType:   inferType(params.Custom1),
+		}
+	}
 
-	// 8. Apply premium multiplier if applicable
-	multiplier := 1.0
-	// TODO: Check subscription status and apply multiplier (1.5x-2x)
-	// This will be implemented in the Ad-Watch Multipliers task
+	// 8. Calculate dynamic reward with all modifiers
+	rewardCalc, err := a.rewardAlgorithm.CalculateReward(ctx, *rewardCtx)
+	if err != nil {
+		log.Printf("⚠️ Failed to calculate reward for user %s: %v", userID, err)
+		// Fallback to simple 1:1 conversion
+		rewardCalc = &RewardCalculation{
+			BaseReward:     params.Amount,
+			TierMultiplier: 1.0,
+			FinalReward:    params.Amount,
+		}
+	}
 
-	finalReward := int(float64(baseReward) * multiplier)
+	finalReward := rewardCalc.FinalReward
+	multiplier := rewardCalc.TierMultiplier
 
 	// 9. Record conversion
 	if err := a.recordConversion(ctx, userID, params, finalReward, multiplier, "completed", ""); err != nil {
@@ -192,7 +214,11 @@ func (a *AdConversionService) ProcessAyetCallback(ctx context.Context, params Ay
 		return fmt.Errorf("failed to credit user: %w", err)
 	}
 
-	log.Printf("✅ Ad conversion processed: user=%s, conversion=%s, reward=%d GC", userID, params.ConversionID, finalReward)
+	log.Printf("✅ Ad conversion processed: user=%s, conversion=%s, reward=%d GC (base=%d, tier=%.1fx, bonuses=%d, %s)",
+		userID, params.ConversionID, finalReward,
+		rewardCalc.BaseReward, rewardCalc.TierMultiplier,
+		rewardCalc.EngagementBonus+rewardCalc.NewUserBonus,
+		rewardCalc.Explanation)
 	return nil
 }
 
