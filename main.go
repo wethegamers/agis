@@ -281,6 +281,11 @@ func main() {
 	// Initialize modular command handler
 	commandHandler = commands.NewCommandHandler(cfg, dbService, loggingService)
 	log.Println("✅ Modular command system initialized")
+	
+	// Register ad analytics command (requires AdConversionService)
+	adAnalyticsCmd := commands.NewAdAnalyticsCommand(adConversionService)
+	commandHandler.Register(adAnalyticsCmd)
+	log.Println("✅ Ad analytics command registered")
 
 	// Wire user servers provider for WordPress dashboard API
 	http.SetUserServersProvider(func(ctx context.Context, discordID string) ([]http.DashboardServer, error) {
