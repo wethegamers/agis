@@ -34,12 +34,21 @@ func (c *ConsentCommand) Permission() bot.Permission {
 
 func (c *ConsentCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	ctx := context.Background()
-	userID := bot.GetUserID(i)
+	userID := int64(0)
+	if i.Member != nil && i.Member.User != nil {
+		fmt.Sscanf(i.Member.User.ID, "%d", &userID)
+	}
 
 	// Check if user already has consent
 	consentStatus, err := c.consentService.GetConsentStatus(ctx, userID)
 	if err != nil {
-		return bot.RespondError(s, i, "Failed to check consent status")
+		return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "❌ Failed to check consent status",
+				Flags:   discordgo.MessageFlagsEphemeral,
+			},
+		})
 	}
 
 	// If already consented, show current status
@@ -94,15 +103,19 @@ func (c *ConsentCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 func ConsentAcceptHandler(consentService *services.ConsentService) func(*discordgo.Session, *discordgo.InteractionCreate) {
 	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		ctx := context.Background()
-		userID := bot.GetUserID(i)
+		userID := int64(0)
+		if i.Member != nil && i.Member.User != nil {
+			fmt.Sscanf(i.Member.User.ID, "%d", &userID)
+		}
 
 		// TODO: In production, detect user's country from IP or Discord locale
 		// For now, default to "US" - non-EU country
 		userCountry := "US"
 		if i.Locale != "" {
 			// Extract country from locale (e.g., "en-GB" -> "GB")
-			if len(i.Locale) >= 5 {
-				userCountry = i.Locale[len(i.Locale)-2:]
+			localeStr := string(i.Locale)
+			if len(localeStr) >= 5 {
+				userCountry = localeStr[len(localeStr)-2:]
 			}
 		}
 
@@ -138,12 +151,18 @@ func ConsentAcceptHandler(consentService *services.ConsentService) func(*discord
 func ConsentDeclineHandler(consentService *services.ConsentService) func(*discordgo.Session, *discordgo.InteractionCreate) {
 	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		ctx := context.Background()
-		userID := bot.GetUserID(i)
+		userID := int64(0)
+		if i.Member != nil && i.Member.User != nil {
+			fmt.Sscanf(i.Member.User.ID, "%d", &userID)
+		}
 
 		// Record decline
 		userCountry := "US"
-		if i.Locale != "" && len(i.Locale) >= 5 {
-			userCountry = i.Locale[len(i.Locale)-2:]
+		if i.Locale != "" {
+			localeStr := string(i.Locale)
+			if len(localeStr) >= 5 {
+				userCountry = localeStr[len(localeStr)-2:]
+			}
 		}
 
 		err := consentService.RecordConsent(ctx, userID, false, userCountry, "discord_command")
@@ -195,11 +214,20 @@ func (c *ConsentStatusCommand) Permission() bot.Permission {
 
 func (c *ConsentStatusCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	ctx := context.Background()
-	userID := bot.GetUserID(i)
+	userID := int64(0)
+	if i.Member != nil && i.Member.User != nil {
+		fmt.Sscanf(i.Member.User.ID, "%d", &userID)
+	}
 
 	consentStatus, err := c.consentService.GetConsentStatus(ctx, userID)
 	if err != nil {
-		return bot.RespondError(s, i, "Failed to retrieve consent status")
+		return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "❌ Failed to retrieve consent status",
+				Flags:   discordgo.MessageFlagsEphemeral,
+			},
+		})
 	}
 
 	if consentStatus == nil {
@@ -316,7 +344,10 @@ func (c *ConsentWithdrawCommand) Execute(s *discordgo.Session, i *discordgo.Inte
 func ConsentWithdrawConfirmHandler(consentService *services.ConsentService) func(*discordgo.Session, *discordgo.InteractionCreate) {
 	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		ctx := context.Background()
-		userID := bot.GetUserID(i)
+		userID := int64(0)
+		if i.Member != nil && i.Member.User != nil {
+			fmt.Sscanf(i.Member.User.ID, "%d", &userID)
+		}
 
 		err := consentService.WithdrawConsent(ctx, userID)
 		if err != nil {
