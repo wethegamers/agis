@@ -84,7 +84,7 @@ agis-bot:
   host: chart-example.local
   console: chart-example.local
 
-vaultMountPoint: kubefirst
+vaultMountPoint: secret
 vaultSecretPath: development/agis-bot
 clusterSecretStoreName: vault-kv-secret
 
