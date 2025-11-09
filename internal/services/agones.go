@@ -318,3 +318,25 @@ func (a *AgonesService) GetGameServerConnection(ctx context.Context, uid string)
 
 	return info.Address, info.Port, nil
 }
+
+// GameServerRequest represents a request to create a new GameServer
+type GameServerRequest struct {
+	Name      string
+	Namespace string
+	GameType  string
+	Labels    map[string]string
+	Resources ResourceRequirements
+}
+
+// ResourceRequirements specifies CPU and memory requirements
+type ResourceRequirements struct {
+	CPURequest    string
+	MemoryRequest string
+}
+
+// CreateGameServer creates a new GameServer in Agones
+func (a *AgonesService) CreateGameServer(ctx context.Context, req *GameServerRequest) (string, error) {
+	// TODO: Implement actual GameServer creation
+	// For now, return a simulated server ID
+	return fmt.Sprintf("gs-%d", time.Now().Unix()), nil
+}

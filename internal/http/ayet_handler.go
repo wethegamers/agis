@@ -112,7 +112,6 @@ func (h *AyetHandler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	var err error
 	if h.metrics != nil {
 		err = h.metrics.ObserveCallbackLatency("ayet", func() error {
 			return h.adService.ProcessAyetCallback(ctx, params)

@@ -11,7 +11,7 @@ import (
 // GuildProvisioningService handles automatic server provisioning from guild treasury
 type GuildProvisioningService struct {
 	db             *sql.DB
-	agonesClient   *AgonesClient // For creating game servers
+	agonesService  *AgonesService // For creating game servers
 	databaseSvc    *DatabaseService
 	notificationSvc *NotificationService
 }
@@ -44,10 +44,10 @@ type ProvisionRequest struct {
 }
 
 // NewGuildProvisioningService creates a new guild provisioning service
-func NewGuildProvisioningService(db *sql.DB, agonesClient *AgonesClient, dbSvc *DatabaseService, notifySvc *NotificationService) *GuildProvisioningService {
+func NewGuildProvisioningService(db *sql.DB, agonesService *AgonesService, dbSvc *DatabaseService, notifySvc *NotificationService) *GuildProvisioningService {
 	return &GuildProvisioningService{
 		db:             db,
-		agonesClient:   agonesClient,
+		agonesService:  agonesService,
 		databaseSvc:    dbSvc,
 		notificationSvc: notifySvc,
 	}
@@ -246,7 +246,7 @@ func (s *GuildProvisioningService) ApproveProvisioning(ctx context.Context, guil
 
 // provisionServer creates the actual game server via Agones
 func (s *GuildProvisioningService) provisionServer(ctx context.Context, req *ProvisionRequest, template *ServerTemplate) (string, error) {
-	if s.agonesClient == nil {
+	if s.agonesService == nil {
 		// Local mode - simulate provisioning
 		return fmt.Sprintf("sim-%s-%d", req.GuildID, time.Now().Unix()), nil
 	}
@@ -267,7 +267,7 @@ func (s *GuildProvisioningService) provisionServer(ctx context.Context, req *Pro
 		},
 	}
 
-	serverID, err := s.agonesClient.CreateGameServer(ctx, gameServer)
+	serverID, err := s.agonesService.CreateGameServer(ctx, gameServer)
 	if err != nil {
 		return "", err
 	}
@@ -346,9 +346,9 @@ func (s *GuildProvisioningService) renewServer(ctx context.Context, guildID, ser
 
 // terminateServer terminates a running server
 func (s *GuildProvisioningService) terminateServer(ctx context.Context, guildID, serverID string) error {
-	if s.agonesClient != nil {
+	if s.agonesService != nil {
 		// Delete server via Agones
-		err := s.agonesClient.DeleteGameServer(ctx, serverID)
+		err := s.agonesService.DeleteGameServer(ctx, serverID)
 		if err != nil {
 			return fmt.Errorf("failed to delete game server: %w", err)
 		}
