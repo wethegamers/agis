@@ -307,7 +307,7 @@ func (c *ConsentWithdrawCommand) Permission() bot.Permission {
 
 func (c *ConsentWithdrawCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	ctx := context.Background()
-	userID := bot.GetUserID(i)
+	_ = ctx // unused for now
 
 	// Show confirmation prompt
 	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -417,7 +417,13 @@ func (c *ConsentStatsCommand) Execute(s *discordgo.Session, i *discordgo.Interac
 
 	stats, err := c.consentService.GetConsentStats(ctx)
 	if err != nil {
-		return bot.RespondError(s, i, "Failed to retrieve consent statistics")
+		return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "❌ Failed to retrieve consent statistics",
+				Flags:   discordgo.MessageFlagsEphemeral,
+			},
+		})
 	}
 
 	message := fmt.Sprintf("📊 **GDPR Consent Statistics**\n\n"+
