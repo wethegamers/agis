@@ -68,13 +68,15 @@ func (c *DailyCommand) Execute(ctx *CommandContext) error {
 		return err
 	}
 
-	// Calculate daily reward (base + tier bonus)
-	baseReward := 25
-	tierBonus := 0
-	if user.Tier == "premium" {
-		tierBonus = 15 // Premium users get +15 bonus
+	// Calculate daily reward (50 GC base, 100 GC for premium)
+	baseReward := 50
+	totalReward := baseReward
+	
+	// Check for active premium subscription
+	isPremium := HasActivePremium(ctx.DB.DB(), ctx.Message.Author.ID)
+	if isPremium {
+		totalReward = 100 // Premium gets double
 	}
-	totalReward := baseReward + tierBonus
 
 	// Add credits
 	err = ctx.DB.AddCredits(ctx.Message.Author.ID, totalReward)
@@ -100,8 +102,8 @@ func (c *DailyCommand) Execute(ctx *CommandContext) error {
 		Color:       0x00ff00,
 		Fields: []*discordgo.MessageEmbedField{
 			{
-				Name:   "💰 Reward Breakdown",
-				Value:  fmt.Sprintf("Base: %d credits\nTier Bonus: %d credits\n**Total: %d credits**", baseReward, tierBonus, totalReward),
+				Name:   "💰 Daily Reward",
+				Value:  fmt.Sprintf("**%d GameCredits**%s", totalReward, func() string { if isPremium { return " 👑" } else { return "" } }()),
 				Inline: true,
 			},
 			{
@@ -116,12 +118,13 @@ func (c *DailyCommand) Execute(ctx *CommandContext) error {
 			},
 		},
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: "💡 Premium members get +15 bonus credits daily! Upgrade with 'upgrade premium'",
+			Text: func() string {
+				if isPremium {
+					return "⭐ Premium 2x multiplier applied! Thanks for supporting WTG!"
+				}
+				return "💎 Premium members get 100 GC daily (2x)! Use 'subscribe' to upgrade"
+			}(),
 		},
-	}
-
-	if user.Tier == "premium" {
-		embed.Footer.Text = "⭐ Premium bonus applied! Thanks for supporting WTG!"
 	}
 
 	_, err = ctx.Session.ChannelMessageSendEmbed(ctx.Message.ChannelID, embed)

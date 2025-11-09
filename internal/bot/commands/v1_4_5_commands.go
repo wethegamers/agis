@@ -16,7 +16,7 @@ type GiftCreditsCommand struct{}
 
 func (c *GiftCreditsCommand) Name() string { return "gift" }
 func (c *GiftCreditsCommand) Description() string { return "Gift credits to another user" }
-func (c *GiftCreditsCommand) RequiredPermission() PermissionLevel { return PermissionUser }
+func (c *GiftCreditsCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *GiftCreditsCommand) Execute(ctx *CommandContext) error {
 	if len(ctx.Args) < 2 || len(ctx.Message.Mentions) == 0 {
@@ -85,7 +85,7 @@ type TransactionsCommand struct{}
 
 func (c *TransactionsCommand) Name() string { return "transactions" }
 func (c *TransactionsCommand) Description() string { return "View credit transaction history" }
-func (c *TransactionsCommand) RequiredPermission() PermissionLevel { return PermissionUser }
+func (c *TransactionsCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *TransactionsCommand) Execute(ctx *CommandContext) error {
 	rows, err := ctx.DB.DB().Query(`
@@ -136,7 +136,7 @@ type FavoriteCommand struct{}
 
 func (c *FavoriteCommand) Name() string { return "favorite" }
 func (c *FavoriteCommand) Description() string { return "Bookmark a server (add/remove/list)" }
-func (c *FavoriteCommand) RequiredPermission() PermissionLevel { return PermissionUser }
+func (c *FavoriteCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *FavoriteCommand) Execute(ctx *CommandContext) error {
 	if len(ctx.Args) == 0 {
@@ -235,7 +235,7 @@ type SearchServersCommand struct{}
 
 func (c *SearchServersCommand) Name() string { return "search" }
 func (c *SearchServersCommand) Description() string { return "Search public servers" }
-func (c *SearchServersCommand) RequiredPermission() PermissionLevel { return PermissionUser }
+func (c *SearchServersCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *SearchServersCommand) Execute(ctx *CommandContext) error {
 	if len(ctx.Args) == 0 {
@@ -288,7 +288,7 @@ type ShopCommand struct{}
 
 func (c *ShopCommand) Name() string { return "shop" }
 func (c *ShopCommand) Description() string { return "Browse shop items" }
-func (c *ShopCommand) RequiredPermission() PermissionLevel { return PermissionUser }
+func (c *ShopCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *ShopCommand) Execute(ctx *CommandContext) error {
 	rows, err := ctx.DB.DB().Query(`
@@ -340,7 +340,7 @@ type AchievementsCommand struct{}
 
 func (c *AchievementsCommand) Name() string { return "achievements" }
 func (c *AchievementsCommand) Description() string { return "View your achievements" }
-func (c *AchievementsCommand) RequiredPermission() PermissionLevel { return PermissionUser }
+func (c *AchievementsCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *AchievementsCommand) Execute(ctx *CommandContext) error {
 	// Get unlocked achievements
@@ -390,7 +390,7 @@ type ReviewCommand struct{}
 
 func (c *ReviewCommand) Name() string { return "review" }
 func (c *ReviewCommand) Description() string { return "Review a public server (1-5 stars)" }
-func (c *ReviewCommand) RequiredPermission() PermissionLevel { return PermissionUser }
+func (c *ReviewCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *ReviewCommand) Execute(ctx *CommandContext) error {
 	if len(ctx.Args) < 3 {
@@ -436,7 +436,7 @@ type ReviewsCommand struct{}
 
 func (c *ReviewsCommand) Name() string { return "reviews" }
 func (c *ReviewsCommand) Description() string { return "View server reviews" }
-func (c *ReviewsCommand) RequiredPermission() PermissionLevel { return PermissionUser }
+func (c *ReviewsCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *ReviewsCommand) Execute(ctx *CommandContext) error {
 	if len(ctx.Args) == 0 {

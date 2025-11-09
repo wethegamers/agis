@@ -15,7 +15,7 @@ type ProfileCommand struct{}
 
 func (c *ProfileCommand) Name() string { return "profile" }
 func (c *ProfileCommand) Description() string { return "View user profile and statistics" }
-func (c *ProfileCommand) RequiredPermission() PermissionLevel { return PermissionUser }
+func (c *ProfileCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *ProfileCommand) Execute(ctx *CommandContext) error {
 	targetUserID := ctx.Message.Author.ID
@@ -79,8 +79,8 @@ func (c *ProfileCommand) Execute(ctx *CommandContext) error {
 		activeServers,
 		len(servers),
 		totalCommands,
-		formatDuration(time.Since(user.LastDaily)),
-		formatDuration(time.Since(user.LastWork)),
+		formatDurationV1_3(time.Since(user.LastDaily)),
+		formatDurationV1_3(time.Since(user.LastWork)),
 	)
 
 	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, profile)
@@ -97,7 +97,7 @@ func NewInfoAboutCommand(startTime time.Time) *InfoAboutCommand {
 
 func (c *InfoAboutCommand) Name() string { return "about" }
 func (c *InfoAboutCommand) Description() string { return "Bot information and statistics" }
-func (c *InfoAboutCommand) RequiredPermission() PermissionLevel { return PermissionUser }
+func (c *InfoAboutCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *InfoAboutCommand) Execute(ctx *CommandContext) error {
 	uptime := time.Since(c.startTime)
@@ -134,7 +134,7 @@ func (c *InfoAboutCommand) Execute(ctx *CommandContext) error {
 		buildInfo.Version,
 		buildInfo.Commit[:7],
 		buildInfo.BuildDate,
-		formatDuration(uptime),
+		formatDurationV1_3(uptime),
 		totalUsers,
 		totalServers,
 		activeServers,
@@ -151,7 +151,7 @@ type InfoGamesCommand struct{}
 
 func (c *InfoGamesCommand) Name() string { return "games" }
 func (c *InfoGamesCommand) Description() string { return "List supported games and pricing" }
-func (c *InfoGamesCommand) RequiredPermission() PermissionLevel { return PermissionUser }
+func (c *InfoGamesCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *InfoGamesCommand) Execute(ctx *CommandContext) error {
 	games := `🎮 **Supported Games**
@@ -188,7 +188,7 @@ type LeaderboardCommand struct{}
 
 func (c *LeaderboardCommand) Name() string { return "leaderboard" }
 func (c *LeaderboardCommand) Description() string { return "View leaderboards (credits, servers)" }
-func (c *LeaderboardCommand) RequiredPermission() PermissionLevel { return PermissionUser }
+func (c *LeaderboardCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *LeaderboardCommand) Execute(ctx *CommandContext) error {
 	lbType := "credits"
@@ -287,7 +287,7 @@ type StartServerCommand struct{}
 
 func (c *StartServerCommand) Name() string { return "start" }
 func (c *StartServerCommand) Description() string { return "Start a stopped server" }
-func (c *StartServerCommand) RequiredPermission() PermissionLevel { return PermissionUser }
+func (c *StartServerCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *StartServerCommand) Execute(ctx *CommandContext) error {
 	if len(ctx.Args) == 0 {
@@ -330,55 +330,11 @@ func (c *StartServerCommand) Execute(ctx *CommandContext) error {
 	))
 }
 
-// ServerLogsCommand views server logs
-type ServerLogsCommand struct{}
-
-func (c *ServerLogsCommand) Name() string { return "logs" }
-func (c *ServerLogsCommand) Description() string { return "View server logs" }
-func (c *ServerLogsCommand) RequiredPermission() PermissionLevel { return PermissionUser }
-
-func (c *ServerLogsCommand) Execute(ctx *CommandContext) error {
-	if len(ctx.Args) == 0 {
-		return fmt.Errorf("usage: logs <server-name> [lines]")
-	}
-
-	serverName := ctx.Args[0]
-	lines := 20
-	if len(ctx.Args) > 1 {
-		fmt.Sscanf(ctx.Args[1], "%d", &lines)
-		if lines > 100 {
-			lines = 100
-		}
-	}
-
-	servers, err := ctx.DB.GetUserServers(ctx.Message.Author.ID)
-	if err != nil {
-		return fmt.Errorf("failed to get servers: %v", err)
-	}
-
-	var targetServer *services.GameServer
-	for _, srv := range servers {
-		if srv.Name == serverName {
-			targetServer = srv
-			break
-		}
-	}
-
-	if targetServer == nil {
-		return fmt.Errorf("server '%s' not found", serverName)
-	}
-
-	// TODO: Implement actual log fetching from Kubernetes
-	// For now, return placeholder
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, fmt.Sprintf(
-		"📋 **Logs for %s**\n```\n[LOG] Server starting...\n[LOG] Loading game type: %s\n[LOG] Server ready on port %d\n```\n"+
-			"*Full log streaming coming soon*",
-		serverName, targetServer.GameType, targetServer.Port,
-	))
-}
+// ServerLogsCommand - DEPRECATED: Replaced by K8sLogsCommand in v1.6.0
+// This is kept for backwards compatibility but should not be registered
 
 // Helper functions
-func formatDuration(d time.Duration) string {
+func formatDurationV1_3(d time.Duration) string {
 	if d < time.Minute {
 		return "just now"
 	}

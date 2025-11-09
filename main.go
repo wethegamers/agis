@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -13,6 +14,7 @@ import (
 	"agis-bot/internal/bot/commands"
 	"agis-bot/internal/config"
 	"agis-bot/internal/http"
+	"agis-bot/internal/payment"
 	"agis-bot/internal/services"
 
 	"github.com/bwmarrin/discordgo"
@@ -157,6 +159,89 @@ func main() {
 		}
 		return err
 	}
+	// Wire Stripe payment service (BLOCKER 2: Zero-touch payments)
+	if os.Getenv("STRIPE_SECRET_KEY") != "" {
+		stripeSecretKey := os.Getenv("STRIPE_SECRET_KEY")
+		stripeWebhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+		stripeSuccessURL := os.Getenv("STRIPE_SUCCESS_URL")
+		stripeCancelURL := os.Getenv("STRIPE_CANCEL_URL")
+		stripeTestMode := os.Getenv("STRIPE_TEST_MODE") == "true"
+
+		// Import payment package
+		stripeService := payment.NewStripeService(
+			stripeSecretKey,
+			stripeWebhookSecret,
+			stripeSuccessURL,
+			stripeCancelURL,
+			stripeTestMode,
+		)
+
+		// Wire webhook callback for automatic WTG fulfillment
+		http.SetStripeService(stripeService, func(discordID string, wtgCoins int, sessionID string, amountPaid int64) error {
+			log.Printf("💰 Processing payment: User %s purchased %d WTG for $%.2f (session: %s)",
+				discordID, wtgCoins, float64(amountPaid)/100, sessionID)
+
+			// Begin database transaction
+			tx, err := dbService.DB().Begin()
+			if err != nil {
+				return fmt.Errorf("failed to start transaction: %v", err)
+			}
+			defer tx.Rollback()
+
+			// Add WTG coins to user account
+			_, err = tx.Exec(`
+				INSERT INTO users (discord_id, wtg_coins, credits)
+				VALUES ($1, $2, 0)
+				ON CONFLICT (discord_id) 
+				DO UPDATE SET wtg_coins = users.wtg_coins + $2
+			`, discordID, wtgCoins)
+
+			if err != nil {
+				return fmt.Errorf("failed to add WTG coins: %v", err)
+			}
+
+			// Log transaction for audit trail
+			_, err = tx.Exec(`
+				INSERT INTO credit_transactions (
+					from_user, to_user, amount, transaction_type, description, currency_type
+				) VALUES (
+					'STRIPE', $1, $2, 'purchase', $3, 'WTG'
+				)
+			`, discordID, wtgCoins, fmt.Sprintf("Stripe payment $%.2f - Session %s", float64(amountPaid)/100, sessionID))
+
+			if err != nil {
+				return fmt.Errorf("failed to log transaction: %v", err)
+			}
+
+			// Commit transaction
+			if err := tx.Commit(); err != nil {
+				return fmt.Errorf("failed to commit transaction: %v", err)
+			}
+
+			log.Printf("✅ Successfully credited %d WTG to user %s", wtgCoins, discordID)
+
+			// Send Discord DM notification (best effort, don't fail payment on DM error)
+			if session != nil {
+				channel, err := session.UserChannelCreate(discordID)
+				if err == nil {
+					session.ChannelMessageSend(channel.ID, fmt.Sprintf(
+						"💎 **Payment Successful!**\\n\\n"+
+							"You've received **%d WTG Coins**!\\n"+
+							"Amount paid: $%.2f\\n\\n"+
+							"Use `credits` to see your balance or `convert` to turn WTG into GameCredits!",
+						wtgCoins, float64(amountPaid)/100,
+					))
+				}
+			}
+
+			return nil
+		})
+
+		log.Printf("✅ Stripe payment service initialized (Test Mode: %v)", stripeTestMode)
+	} else {
+		log.Println("⚠️ Stripe not configured - payments disabled (set STRIPE_SECRET_KEY to enable)")
+	}
+
 	// Wire verification API config, Discord session, and logging
 	http.SetVerifyAPI(cfg.Roles.VerifyAPISecret, cfg.Discord.GuildID, cfg.Roles.VerifiedRoleID)
 	http.SetDiscordSessionForAPI(session)

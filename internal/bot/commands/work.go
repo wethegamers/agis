@@ -79,17 +79,9 @@ func (c *WorkCommand) Execute(ctx *CommandContext) error {
 	// Simulate work completion and give base credits
 	workCredits := 15 // Base work credits (smaller than ad rewards)
 
-	// Apply tier multipliers for work
-	tierMultipliers := map[string]float64{
-		"free":     1.0,
-		"bronze":   1.2,
-		"silver":   1.5,
-		"gold":     2.0,
-		"platinum": 2.5,
-	}
-
-	multiplier := tierMultipliers[user.Tier]
-	finalCredits := int(float64(workCredits) * multiplier)
+	// Apply premium 2x multiplier
+	multiplier := GetUserMultiplier(ctx.DB.DB(), ctx.Message.Author.ID)
+	finalCredits := workCredits * multiplier
 
 	user.Credits += finalCredits
 	user.LastWork = time.Now()
@@ -110,8 +102,8 @@ func (c *WorkCommand) Execute(ctx *CommandContext) error {
 				Inline: true,
 			},
 			{
-				Name:   "Tier Bonus",
-				Value:  fmt.Sprintf("%.1fx multiplier", multiplier),
+				Name:   "Multiplier",
+				Value:  fmt.Sprintf("%dx%s", multiplier, func() string { if multiplier > 1 { return " 👑" } else { return "" } }()),
 				Inline: true,
 			},
 			{

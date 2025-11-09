@@ -189,12 +189,15 @@ func (d *DatabaseService) initDatabase() error {
 		used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	)`
 
-	// Create bot_roles table for permission management
+	// Create bot_roles table for permission management (v1.6.0 expanded)
 	createRolesTable := `
 	CREATE TABLE IF NOT EXISTS bot_roles (
 		id SERIAL PRIMARY KEY,
 		role_id VARCHAR(32) NOT NULL,
-		role_type VARCHAR(20) NOT NULL CHECK (role_type IN ('admin', 'moderator')),
+		role_type VARCHAR(50) NOT NULL CHECK (role_type IN (
+			'admin', 'moderator', 'gameserver-mod', 'community-ambassador',
+			'discord-mod', 'discord-admin', 'backend-dev', 'cluster-admin'
+		)),
 		guild_id VARCHAR(32) NOT NULL,
 		added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		UNIQUE(role_id, guild_id)
@@ -246,10 +249,12 @@ func (d *DatabaseService) initDatabase() error {
 		amount INTEGER NOT NULL,
 		transaction_type VARCHAR(20) NOT NULL,
 		description TEXT,
+		currency_type VARCHAR(10) DEFAULT 'GC',
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		FOREIGN KEY (to_user) REFERENCES users(discord_id)
 	)`
 
+	// v1.6.0 Enhanced shop with currency support
 	createShopItemsTable := `
 	CREATE TABLE IF NOT EXISTS shop_items (
 		id SERIAL PRIMARY KEY,
@@ -257,6 +262,8 @@ func (d *DatabaseService) initDatabase() error {
 		item_type VARCHAR(50) NOT NULL,
 		description TEXT,
 		price INTEGER NOT NULL,
+		currency_type VARCHAR(10) DEFAULT 'GC' CHECK (currency_type IN ('GC', 'WTG', 'USD')),
+		bonus_amount INTEGER DEFAULT 0,
 		is_active BOOLEAN DEFAULT true,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	)`
@@ -269,7 +276,8 @@ func (d *DatabaseService) initDatabase() error {
 		quantity INTEGER DEFAULT 1,
 		purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		FOREIGN KEY (discord_id) REFERENCES users(discord_id),
-		FOREIGN KEY (item_id) REFERENCES shop_items(id)
+		FOREIGN KEY (item_id) REFERENCES shop_items(id),
+		UNIQUE(discord_id, item_id)
 	)`
 
 	// v1.5.0 tables
@@ -348,6 +356,12 @@ func (d *DatabaseService) initDatabase() error {
 		`ALTER TABLE game_servers ADD COLUMN IF NOT EXISTS last_heartbeat TIMESTAMP DEFAULT NOW()`,
 		`ALTER TABLE game_servers ADD COLUMN IF NOT EXISTS error_message TEXT DEFAULT ''`,
 		`ALTER TABLE game_servers ADD COLUMN IF NOT EXISTS cleanup_at TIMESTAMP`,
+		// v1.6.0 Dual currency system
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS wtg_coins INTEGER DEFAULT 0`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expires TIMESTAMP`,
+		`ALTER TABLE shop_items ADD COLUMN IF NOT EXISTS currency_type VARCHAR(10) DEFAULT 'GC'`,
+		`ALTER TABLE shop_items ADD COLUMN IF NOT EXISTS bonus_amount INTEGER DEFAULT 0`,
+		`ALTER TABLE credit_transactions ADD COLUMN IF NOT EXISTS currency_type VARCHAR(10) DEFAULT 'GC'`,
 	}
 
 	// Ad conversions table (idempotency)
@@ -754,6 +768,24 @@ func (d *DatabaseService) RecordCommandUsage(discordID, command string) {
 	if err != nil {
 		log.Printf("Failed to record command usage: %v", err)
 	}
+}
+
+// GetUserCurrencies returns both WTG and GC balances for a user
+func (d *DatabaseService) GetUserCurrencies(discordID string) (wtg int, gc int) {
+	if d.db == nil {
+		return 0, 100 // Default in local mode
+	}
+
+	err := d.db.QueryRow(`
+		SELECT COALESCE(wtg_coins, 0), credits FROM users WHERE discord_id = $1
+	`, discordID).Scan(&wtg, &gc)
+
+	if err != nil {
+		// User doesn't exist yet, return defaults
+		return 0, 100
+	}
+
+	return wtg, gc
 }
 
 func (d *DatabaseService) UpdateServerPublicStatus(serverName, discordID string, isPublic bool) error {

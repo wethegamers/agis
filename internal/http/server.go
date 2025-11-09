@@ -72,7 +72,16 @@ var (
 
 	// Provider for user servers exposed to WordPress dashboard
 	userServersProvider func(ctx context.Context, discordID string) ([]DashboardServer, error)
+	
+	// Stripe payment service (v1.7.0)
+	stripeService StripeWebhookHandler
+	stripeWebhookCallback func(discordID string, wtgCoins int, sessionID string, amountPaid int64) error
 )
+
+// StripeWebhookHandler interface for payment services
+type StripeWebhookHandler interface {
+	HandleWebhook(w http.ResponseWriter, r *http.Request) (event interface{}, err error)
+}
 
 // SetAdsCallbackToken sets the shared callback token for ad callbacks
 func SetAdsCallbackToken(token string) { adsCallbackToken = token }
@@ -123,6 +132,9 @@ func NewServer() *Server {
 
 	// ads.txt at domain root per ayeT requirement
 	mux.HandleFunc("/ads.txt", adsTxtHandler)
+	
+	// Stripe webhook endpoint (v1.7.0)
+	mux.HandleFunc("/webhooks/stripe", stripeWebhookHandler)
 
 	// Root endpoint
 	mux.HandleFunc("/", rootHandler)
@@ -549,4 +561,64 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 			"/api/user-servers",
 		},
 	})
+}
+
+// Stripe webhook handler (v1.7.0)
+func stripeWebhookHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if stripeService == nil {
+		http.Error(w, "Stripe not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Process webhook
+	event, err := stripeService.HandleWebhook(w, r)
+	if err != nil {
+		log.Printf("❌ Stripe webhook error: %v", err)
+		http.Error(w, "Webhook error", http.StatusBadRequest)
+		return
+	}
+
+	if event == nil {
+		// Unhandled event type, but not an error
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Type assert to get the event details
+	type WebhookEvent interface {
+		GetDiscordID() string
+		GetWTGCoins() int
+		GetSessionID() string
+		GetAmountPaid() int64
+	}
+
+	if webhookEvent, ok := event.(WebhookEvent); ok {
+		if stripeWebhookCallback != nil {
+			err := stripeWebhookCallback(
+				webhookEvent.GetDiscordID(),
+				webhookEvent.GetWTGCoins(),
+				webhookEvent.GetSessionID(),
+				webhookEvent.GetAmountPaid(),
+			)
+			if err != nil {
+				log.Printf("❌ Failed to process payment callback: %v", err)
+				http.Error(w, "Callback error", http.StatusInternalServerError)
+				return
+			}
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]bool{"received": true})
+}
+
+// SetStripeService configures the Stripe payment service
+func SetStripeService(service StripeWebhookHandler, callback func(string, int, string, int64) error) {
+	stripeService = service
+	stripeWebhookCallback = callback
 }

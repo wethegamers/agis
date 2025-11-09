@@ -15,8 +15,8 @@ func (c *RestartServerCommand) Description() string {
 	return "Restart a running server"
 }
 
-func (c *RestartServerCommand) RequiredPermission() PermissionLevel {
-	return PermissionUser
+func (c *RestartServerCommand) RequiredPermission() bot.Permission {
+	return bot.PermissionUser
 }
 
 func (c *RestartServerCommand) Execute(ctx *CommandContext) error {

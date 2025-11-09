@@ -13,9 +13,13 @@ type Permission int
 
 const (
 	PermissionUser Permission = iota
-	PermissionMod
-	PermissionAdmin
-	PermissionOwner
+	PermissionGameServerMod     // Can moderate game servers
+	PermissionCommunityAmbassador // Community engagement
+	PermissionDiscordMod        // Discord moderation
+	PermissionDiscordAdmin      // Discord administration
+	PermissionBackendDev        // Backend developer access
+	PermissionClusterAdmin      // Kubernetes cluster admin
+	PermissionOwner             // Bot owner
 )
 
 // Bot owner Discord ID (hardcoded for security)
@@ -43,17 +47,40 @@ func (p *PermissionChecker) GetUserPermission(s *discordgo.Session, guildID, use
 		return PermissionUser // Default to user permission if we can't get member info
 	}
 
-	// Check for admin roles
+	// Check roles in priority order (highest to lowest)
 	for _, roleID := range member.Roles {
-		if p.isAdminRole(roleID) {
-			return PermissionAdmin
+		if p.isRoleType(roleID, "cluster-admin") {
+			return PermissionClusterAdmin
 		}
 	}
 
-	// Check for mod roles
 	for _, roleID := range member.Roles {
-		if p.isModRole(roleID) {
-			return PermissionMod
+		if p.isRoleType(roleID, "backend-dev") {
+			return PermissionBackendDev
+		}
+	}
+
+	for _, roleID := range member.Roles {
+		if p.isRoleType(roleID, "discord-admin") || p.isAdminRole(roleID) {
+			return PermissionDiscordAdmin
+		}
+	}
+
+	for _, roleID := range member.Roles {
+		if p.isRoleType(roleID, "discord-mod") || p.isModRole(roleID) {
+			return PermissionDiscordMod
+		}
+	}
+
+	for _, roleID := range member.Roles {
+		if p.isRoleType(roleID, "community-ambassador") {
+			return PermissionCommunityAmbassador
+		}
+	}
+
+	for _, roleID := range member.Roles {
+		if p.isRoleType(roleID, "gameserver-mod") {
+			return PermissionGameServerMod
 		}
 	}
 
@@ -71,14 +98,14 @@ func (p *PermissionChecker) IsOwner(userID string) bool {
 	return userID == BotOwnerID
 }
 
-// IsAdmin checks if user has admin permissions
+// IsAdmin checks if user has admin permissions (DiscordAdmin or higher)
 func (p *PermissionChecker) IsAdmin(s *discordgo.Session, guildID, userID string) bool {
-	return p.HasPermission(s, guildID, userID, PermissionAdmin)
+	return p.HasPermission(s, guildID, userID, PermissionDiscordAdmin)
 }
 
-// IsMod checks if user has mod permissions or higher
+// IsMod checks if user has mod permissions or higher (DiscordMod or higher)
 func (p *PermissionChecker) IsMod(s *discordgo.Session, guildID, userID string) bool {
-	return p.HasPermission(s, guildID, userID, PermissionMod)
+	return p.HasPermission(s, guildID, userID, PermissionDiscordMod)
 }
 
 func (p *PermissionChecker) isAdminRole(roleID string) bool {
@@ -96,6 +123,14 @@ func (p *PermissionChecker) isModRole(roleID string) bool {
 			return true
 		}
 	}
+	return false
+}
+
+// isRoleType checks if a role matches a specific type in the database
+func (p *PermissionChecker) isRoleType(roleID, roleType string) bool {
+	// This is a placeholder - actual implementation would query the database
+	// For now, we'll use config-based checking
+	// TODO: Implement database role lookup
 	return false
 }
 
@@ -121,10 +156,18 @@ func GetPermissionString(perm Permission) string {
 	switch perm {
 	case PermissionOwner:
 		return "Owner"
-	case PermissionAdmin:
-		return "Admin"
-	case PermissionMod:
-		return "Moderator"
+	case PermissionClusterAdmin:
+		return "Cluster Admin"
+	case PermissionBackendDev:
+		return "Backend Developer"
+	case PermissionDiscordAdmin:
+		return "Discord Admin"
+	case PermissionDiscordMod:
+		return "Discord Moderator"
+	case PermissionCommunityAmbassador:
+		return "Community Ambassador"
+	case PermissionGameServerMod:
+		return "Game Server Mod"
 	default:
 		return "User"
 	}

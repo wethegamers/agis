@@ -28,6 +28,7 @@ type CommandContext struct {
 	EnhancedServer *services.EnhancedServerService
 	Notifications  *services.NotificationService
 	Agones         *services.AgonesService
+	PricingService *services.PricingService // BLOCKER 1: Dynamic pricing
 }
 
 // Command represents a bot command
@@ -48,6 +49,7 @@ type CommandHandler struct {
 	enhancedServer *services.EnhancedServerService
 	notifications  *services.NotificationService
 	agones         *services.AgonesService
+	pricingService *services.PricingService // BLOCKER 1: Dynamic pricing
 }
 
 func NewCommandHandler(cfg *config.Config, db *services.DatabaseService, logger *services.LoggingService) *CommandHandler {
@@ -67,6 +69,16 @@ func NewCommandHandler(cfg *config.Config, db *services.DatabaseService, logger 
 		enhancedService = services.NewEnhancedServerService(db, agonesService, notificationService)
 	}
 
+	// Initialize pricing service (BLOCKER 1)
+	var pricingService *services.PricingService
+	if db != nil && db.DB() != nil {
+		pricingService, err = services.NewPricingService(db.DB())
+		if err != nil {
+			log.Printf("⚠️ Failed to initialize pricing service: %v", err)
+			pricingService = nil
+		}
+	}
+
 	handler := &CommandHandler{
 		commands:       make(map[string]Command),
 		config:         cfg,
@@ -76,6 +88,7 @@ func NewCommandHandler(cfg *config.Config, db *services.DatabaseService, logger 
 		enhancedServer: enhancedService,
 		notifications:  notificationService,
 		agones:         agonesService,
+		pricingService: pricingService,
 	}
 
 	// Register all commands
@@ -105,7 +118,6 @@ func (h *CommandHandler) registerCommands() {
 	// v1.3.0 New commands
 	h.Register(&RestartServerCommand{})
 	h.Register(&StartServerCommand{})
-	h.Register(&ServerLogsCommand{})
 	h.Register(&ProfileCommand{})
 	h.Register(NewInfoAboutCommand(time.Now())) // Pass bot start time
 	h.Register(&InfoGamesCommand{})
@@ -122,6 +134,13 @@ func (h *CommandHandler) registerCommands() {
 	h.Register(&AchievementsCommand{})
 	h.Register(&ReviewCommand{})
 	h.Register(&ReviewsCommand{})
+	
+	// v1.6.0 Critical features
+	h.Register(&K8sLogsCommand{})        // Real Kubernetes log streaming
+	h.Register(&BuyCommand{})            // Shop purchase system
+	h.Register(&ConvertCommand{})        // WTG to GC conversion
+	h.Register(&InventoryCommand{})      // View purchased items
+	h.Register(&SubscribeCommand{})      // Premium subscription management
 
 	// Debug command
 	h.Register(&DebugPermissionsCommand{})
@@ -137,6 +156,15 @@ func (h *CommandHandler) registerCommands() {
 	h.Register(&AdminRestartCommand{})
 	h.Register(&LogChannelCommand{})
 	h.Register(&AdoptCommand{})
+	
+	// ClusterAdmin commands (v1.6.0 BotKube-style)
+	h.Register(&ClusterPodsCommand{})
+	h.Register(&ClusterNodesCommand{})
+	h.Register(&ClusterEventsCommand{})
+	h.Register(&ClusterNamespacesCommand{})
+
+	// Admin pricing management (BLOCKER 1)
+	h.Register(&PricingCommand{})
 
 	// Owner commands
 	h.Register(&OwnerCommand{})
@@ -226,6 +254,7 @@ func (h *CommandHandler) HandleMessage(s *discordgo.Session, m *discordgo.Messag
 			EnhancedServer: h.enhancedServer,
 			Notifications:  h.notifications,
 			Agones:         h.agones,
+			PricingService: h.pricingService, // BLOCKER 1
 		}
 
 		// Log command execution
@@ -270,6 +299,7 @@ func (h *CommandHandler) HandleMessage(s *discordgo.Session, m *discordgo.Messag
 				EnhancedServer: h.enhancedServer,
 				Notifications:  h.notifications,
 				Agones:         h.agones,
+				PricingService: h.pricingService, // BLOCKER 1
 			}
 			helpCmd.Execute(ctx)
 		}

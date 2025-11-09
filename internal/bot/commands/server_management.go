@@ -88,16 +88,20 @@ func (c *CreateServerCommand) Execute(ctx *CommandContext) error {
 		serverName = args[1]
 	}
 
-	// Validate game type
-	validGames := map[string]int{
-		"minecraft": 5,
-		"cs2":       8,
-		"terraria":  3,
-		"gmod":      6,
+	// BLOCKER 1: Validate game type using dynamic pricing
+	if ctx.PricingService == nil {
+		return fmt.Errorf("pricing service not available - contact administrator")
 	}
 
-	costPerHour, valid := validGames[gameType]
-	if !valid {
+	pricing, err := ctx.PricingService.GetPricing(gameType)
+	if err != nil {
+		// Game type not found or inactive
+		allPricing := ctx.PricingService.GetAllPricing()
+		availableGames := make([]string, 0, len(allPricing))
+		for _, p := range allPricing {
+			availableGames = append(availableGames, fmt.Sprintf("%s (%d GC/hr)", p.GameType, p.CostPerHour))
+		}
+
 		embed := &discordgo.MessageEmbed{
 			Title:       "❌ Invalid Game Type",
 			Description: fmt.Sprintf("Game type '%s' is not supported", gameType),
@@ -105,13 +109,15 @@ func (c *CreateServerCommand) Execute(ctx *CommandContext) error {
 			Fields: []*discordgo.MessageEmbedField{
 				{
 					Name:  "Available Games",
-					Value: "minecraft, cs2, terraria, gmod",
+					Value: strings.Join(availableGames, ", "),
 				},
 			},
 		}
 		_, err := ctx.Session.ChannelMessageSendEmbed(ctx.Message.ChannelID, embed)
 		return err
 	}
+
+	costPerHour := pricing.CostPerHour
 
 	// Check user credits
 	user, err := ctx.DB.GetOrCreateUser(ctx.Message.Author.ID)
