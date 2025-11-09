@@ -76,7 +76,15 @@ var (
 	// Stripe payment service (v1.7.0)
 	stripeService StripeWebhookHandler
 	stripeWebhookCallback func(discordID string, wtgCoins int, sessionID string, amountPaid int64) error
+	
+	// GDPR consent service (v1.7.0 BLOCKER 7)
+	consentChecker ConsentChecker
 )
+
+// ConsentChecker interface for GDPR compliance
+type ConsentChecker interface {
+	HasConsent(ctx context.Context, userID int64, userCountry string) (bool, bool, error)
+}
 
 // StripeWebhookHandler interface for payment services
 type StripeWebhookHandler interface {
@@ -242,6 +250,28 @@ func ayetCallbackHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"status": "bad_request"})
 		return
+	}
+	
+	// GDPR consent check (BLOCKER 7)
+	if consentChecker != nil {
+		userIDInt, err := strconv.ParseInt(uid, 10, 64)
+		if err == nil { // Only check if we can parse the Discord ID
+			// Extract country from custom fields if provided, otherwise default to unknown
+			userCountry := q.Get("custom_1") // ayeT can pass country in custom_1
+			hasConsent, requiresConsent, err := consentChecker.HasConsent(r.Context(), userIDInt, userCountry)
+			if err != nil {
+				log.Printf("ayet callback: consent check error for user %s: %v", uid, err)
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(map[string]string{"status": "consent_check_error"})
+				return
+			}
+			if requiresConsent && !hasConsent {
+				log.Printf("ayet callback: user %s (country: %s) requires consent but has not given it", uid, userCountry)
+				w.WriteHeader(http.StatusForbidden)
+				_ = json.NewEncoder(w).Encode(map[string]string{"status": "consent_required"})
+				return
+			}
+		}
 	}
 	// Validate signature if provided, otherwise fall back to shared token
 	if signature != "" && adsAPIKey != "" {
@@ -497,6 +527,37 @@ func adsPageHandler(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("missing user id (use ?user=<discord_id>)"))
 		return
 	}
+	
+	// GDPR consent check (BLOCKER 7)
+	if consentChecker != nil {
+		userIDInt, err := strconv.ParseInt(uid, 10, 64)
+		if err == nil {
+			// Try to detect country from query param or default to unknown
+			userCountry := r.URL.Query().Get("country")
+			hasConsent, requiresConsent, err := consentChecker.HasConsent(r.Context(), userIDInt, userCountry)
+			if err != nil {
+				log.Printf("/ads page: consent check error for user %s: %v", uid, err)
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte("<html><body><h2>Error</h2><p>Unable to verify consent status. Please try again later.</p></body></html>"))
+				return
+			}
+			if requiresConsent && !hasConsent {
+				// User needs to give consent first
+				w.WriteHeader(http.StatusForbidden)
+				consentHTML := `<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consent Required</title></head><body>
+<h2>⚠️ Consent Required</h2>
+<p>Before you can earn Game Credits through ads, you must give consent for ad viewing.</p>
+<p><strong>Please use the Discord command <code>/consent</code> to give your consent.</strong></p>
+<p>After giving consent, you'll be able to access ads and start earning.</p>
+<hr>
+<small>This is required under GDPR regulations for users in the EU/EEA.</small>
+</body></html>`
+				_, _ = w.Write([]byte(consentHTML))
+				return
+			}
+		}
+	}
 	tpl := `<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Earn Credits</title></head><body>
 <h2>Earn Game Credits</h2>
@@ -621,4 +682,9 @@ func stripeWebhookHandler(w http.ResponseWriter, r *http.Request) {
 func SetStripeService(service StripeWebhookHandler, callback func(string, int, string, int64) error) {
 	stripeService = service
 	stripeWebhookCallback = callback
+}
+
+// SetConsentChecker configures the GDPR consent service
+func SetConsentChecker(checker ConsentChecker) {
+	consentChecker = checker
 }
