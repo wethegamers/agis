@@ -6,6 +6,9 @@ ARG GIT_COMMIT=unknown
 ARG BUILD_DATE=unknown
 
 WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
 COPY . .
 
 # Build with version information injected
