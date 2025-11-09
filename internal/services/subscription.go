@@ -244,17 +244,20 @@ func (s *SubscriptionService) GetSubscriptionStats() (map[string]int, error) {
 	stats := make(map[string]int)
 
 	// Active premium subscriptions
+	var activePremium int
 	err := s.db.DB().QueryRow(`
 		SELECT COUNT(*) 
 		FROM users 
 		WHERE tier = 'premium' 
 		  AND subscription_expires > NOW()
-	`).Scan(&stats["active_premium"])
+	`).Scan(&activePremium)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count active premium: %v", err)
 	}
+	stats["active_premium"] = activePremium
 
 	// Expired subscriptions (within last 30 days)
+	var recentlyExpired int
 	err = s.db.DB().QueryRow(`
 		SELECT COUNT(*) 
 		FROM users 
@@ -262,20 +265,23 @@ func (s *SubscriptionService) GetSubscriptionStats() (map[string]int, error) {
 		  AND subscription_expires IS NOT NULL 
 		  AND subscription_expires > NOW() - INTERVAL '30 days'
 		  AND subscription_expires < NOW()
-	`).Scan(&stats["recently_expired"])
+	`).Scan(&recentlyExpired)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count expired: %v", err)
 	}
+	stats["recently_expired"] = recentlyExpired
 
 	// Total free users
+	var freeUsers int
 	err = s.db.DB().QueryRow(`
 		SELECT COUNT(*) 
 		FROM users 
 		WHERE tier = 'free'
-	`).Scan(&stats["free_users"])
+	`).Scan(&freeUsers)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count free users: %v", err)
 	}
+	stats["free_users"] = freeUsers
 
 	// Calculate revenue (active_premium × $3.99)
 	stats["monthly_revenue_cents"] = stats["active_premium"] * 399 // $3.99 in cents
