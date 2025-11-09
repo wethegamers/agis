@@ -188,6 +188,13 @@ func main() {
 		log.Fatalf("Failed to initialize database service: %v", err)
 	}
 	log.Println("✅ Database service initialized")
+	
+	// Ensure database indexes for performance
+	if dbService.DB() != nil {
+		if err := services.EnsureIndexes(context.Background(), dbService.DB()); err != nil {
+			log.Printf("⚠️ Failed to ensure indexes: %v", err)
+		}
+	}
 
 	// Initialize logging service
 	loggingService := services.NewLoggingService(dbService, session, "") // Guild ID will be set later
