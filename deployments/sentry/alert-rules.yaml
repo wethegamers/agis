@@ -1,0 +1,265 @@
+# Sentry Alert Rules Configuration
+#
+# Apply these via Sentry API, Terraform provider, or manually in Sentry UI
+# Docs: https://docs.sentry.io/product/alerts/alert-types/
+
+alerts:
+  # Critical: Payment Processing Failures
+  - name: "Payment Processing Failure - Critical"
+    environment: production
+    conditions:
+      - type: event.type
+        value: error
+      - type: event.tags.category
+        value: payment
+    filters:
+      - type: event.level
+        operator: equals
+        value: error
+    triggers:
+      - label: critical
+        threshold_type: above
+        alert_threshold: 5  # 5 errors in window
+        resolve_threshold: 0
+        actions:
+          - type: discord
+            target_type: specific
+            target_identifier: "{{DISCORD_WEBHOOK_PAYMENTS}}"
+            integration: discord-alerts
+          - type: pagerduty
+            target_type: specific
+            target_identifier: "{{PAGERDUTY_SERVICE_KEY}}"
+            integration: pagerduty
+    time_window: 5  # minutes
+    frequency: 5  # check every 5 minutes
+
+  # High: Ad Callback Signature Verification Failures
+  - name: "Ad Callback Signature Verification Failure"
+    environment: production
+    conditions:
+      - type: event.type
+        value: error
+      - type: event.message
+        operator: contains
+        value: "signature verification failed"
+    filters:
+      - type: event.tags.provider
+        operator: in
+        value: ["ayet", "offerwall", "surveywall"]
+    triggers:
+      - label: warning
+        threshold_type: above
+        alert_threshold: 10  # 10 failures in 10 minutes
+        resolve_threshold: 2
+        actions:
+          - type: discord
+            target_type: specific
+            target_identifier: "{{DISCORD_WEBHOOK_ADS}}"
+    time_window: 10
+    frequency: 5
+
+  # High: Database Connection Errors
+  - name: "Database Connection Failure"
+    environment: production
+    conditions:
+      - type: event.type
+        value: error
+      - type: event.tags.category
+        operator: equals
+        value: database
+    filters:
+      - type: event.message
+        operator: contains
+        value: ["connection refused", "timeout", "no rows"]
+    triggers:
+      - label: critical
+        threshold_type: above
+        alert_threshold: 3
+        resolve_threshold: 0
+        actions:
+          - type: discord
+            target_type: specific
+            target_identifier: "{{DISCORD_WEBHOOK_INFRA}}"
+          - type: email
+            target_type: team
+            target_identifier: backend-team
+    time_window: 5
+    frequency: 1  # check every minute
+
+  # Medium: High Fraud Detection Rate
+  - name: "Abnormal Fraud Detection Rate"
+    environment: production
+    conditions:
+      - type: event.type
+        value: error
+      - type: event.tags.fraud_reason
+        operator: is_set
+    triggers:
+      - label: warning
+        threshold_type: above
+        alert_threshold: 50  # 50 fraud attempts in 15 minutes
+        resolve_threshold: 10
+        actions:
+          - type: discord
+            target_type: specific
+            target_identifier: "{{DISCORD_WEBHOOK_SECURITY}}"
+    time_window: 15
+    frequency: 5
+
+  # Medium: Ad Conversion Processing Errors
+  - name: "Ad Conversion Processing Error"
+    environment: production
+    conditions:
+      - type: event.type
+        value: error
+      - type: event.tags.operation
+        operator: equals
+        value: process_conversion
+    triggers:
+      - label: warning
+        threshold_type: above
+        alert_threshold: 20
+        resolve_threshold: 5
+        actions:
+          - type: discord
+            target_type: specific
+            target_identifier: "{{DISCORD_WEBHOOK_ADS}}"
+    time_window: 10
+    frequency: 5
+
+  # Low: Subscription Management Errors
+  - name: "Subscription Management Error"
+    environment: production
+    conditions:
+      - type: event.type
+        value: error
+      - type: event.tags.category
+        operator: equals
+        value: subscription
+    triggers:
+      - label: info
+        threshold_type: above
+        alert_threshold: 10
+        resolve_threshold: 2
+        actions:
+          - type: email
+            target_type: team
+            target_identifier: backend-team
+    time_window: 30
+    frequency: 10
+
+  # Performance: Slow Ad Callback Processing
+  - name: "Slow Ad Callback Processing"
+    environment: production
+    conditions:
+      - type: event.type
+        value: transaction
+      - type: event.tags.transaction
+        operator: equals
+        value: "POST /ads/ayet/s2s"
+    triggers:
+      - label: warning
+        threshold_type: above
+        alert_threshold: 2000  # 2000ms P95
+        resolve_threshold: 1000
+        actions:
+          - type: discord
+            target_type: specific
+            target_identifier: "{{DISCORD_WEBHOOK_PERFORMANCE}}"
+    metric: p95(transaction.duration)
+    time_window: 10
+    frequency: 5
+
+  # Critical: Zero Successful Ad Conversions
+  - name: "Zero Successful Ad Conversions"
+    environment: production
+    conditions:
+      - type: event.type
+        value: error
+      - type: event.tags.status
+        operator: equals
+        value: completed
+    triggers:
+      - label: critical
+        threshold_type: below
+        alert_threshold: 1  # less than 1 successful conversion in 30 minutes
+        resolve_threshold: 5
+        actions:
+          - type: discord
+            target_type: specific
+            target_identifier: "{{DISCORD_WEBHOOK_REVENUE}}"
+          - type: pagerduty
+            target_type: specific
+            target_identifier: "{{PAGERDUTY_SERVICE_KEY}}"
+    time_window: 30
+    frequency: 5
+
+# Issue Alert Configurations (for specific error patterns)
+issue_alerts:
+  - name: "Unhandled Panic in Production"
+    environment: production
+    conditions:
+      - type: event.level
+        value: fatal
+    actions:
+      - type: pagerduty
+        target_identifier: "{{PAGERDUTY_SERVICE_KEY}}"
+      - type: discord
+        target_identifier: "{{DISCORD_WEBHOOK_CRITICAL}}"
+    action_match: all
+
+  - name: "Payment Gateway Timeout"
+    environment: production
+    conditions:
+      - type: event.message
+        operator: contains
+        value: ["stripe", "timeout", "payment"]
+    actions:
+      - type: discord
+        target_identifier: "{{DISCORD_WEBHOOK_PAYMENTS}}"
+    action_match: all
+
+  - name: "GDPR Consent Check Failure"
+    environment: production
+    conditions:
+      - type: event.tags.category
+        value: consent
+      - type: event.level
+        operator: gte
+        value: error
+    actions:
+      - type: email
+        target_identifier: legal-team@example.com
+      - type: discord
+        target_identifier: "{{DISCORD_WEBHOOK_COMPLIANCE}}"
+    action_match: all
+
+# Performance Monitoring Alerts
+performance_alerts:
+  - name: "High Error Rate on Ad Endpoints"
+    environment: production
+    metric: failure_rate()
+    query: "transaction:/ads/*"
+    triggers:
+      - threshold_type: above
+        alert_threshold: 5  # 5% error rate
+        warning_threshold: 2  # 2% warning
+        resolve_threshold: 1
+    time_window: 10
+    actions:
+      - type: discord
+        target_identifier: "{{DISCORD_WEBHOOK_ADS}}"
+
+  - name: "High Apdex Score Degradation"
+    environment: production
+    metric: apdex(300)  # 300ms threshold
+    query: "transaction:/ads/ayet/s2s"
+    triggers:
+      - threshold_type: below
+        alert_threshold: 0.8  # Apdex < 0.8
+        warning_threshold: 0.9
+        resolve_threshold: 0.95
+    time_window: 10
+    actions:
+      - type: discord
+        target_identifier: "{{DISCORD_WEBHOOK_PERFORMANCE}}"
