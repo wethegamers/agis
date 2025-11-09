@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"agis-bot/internal/bot"
+	"agis-bot/internal/services"
+
 	"github.com/bwmarrin/discordgo"
-	"github.com/wethegamers/agis-bot/internal/bot"
-	"github.com/wethegamers/agis-bot/internal/services"
 )
 
 // ConsentCommand allows users to give/revoke ad consent (GDPR compliance)
