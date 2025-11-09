@@ -110,6 +110,22 @@ var (
 func main() {
 	// Load configuration from .env file
 	cfg = config.Load()
+	
+	// Initialize error monitoring (Sentry)
+	sentryDSN := os.Getenv("SENTRY_DSN")
+	sentryEnv := os.Getenv("SENTRY_ENVIRONMENT")
+	if sentryEnv == "" {
+		sentryEnv = "development"
+	}
+	errorMonitor, err := services.NewErrorMonitor(sentryDSN, sentryEnv, version.Version)
+	if err != nil {
+		log.Printf("⚠️ Failed to initialize error monitoring: %v", err)
+	}
+	defer func() {
+		if errorMonitor != nil {
+			errorMonitor.Close()
+		}
+	}()
 
 	// Register Prometheus metrics
 	prometheus.MustRegister(commandsExecuted)
