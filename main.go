@@ -148,7 +148,27 @@ func main() {
 	loggingService := services.NewLoggingService(dbService, session, "") // Guild ID will be set later
 	log.Println("✅ Logging service initialized")
 
-	// Wire ad callback token and handler (credits reward from ayet)
+	// Initialize GDPR consent service (BLOCKER 7)
+	consentService := services.NewConsentService(dbService)
+	ctx := context.Background()
+	if err := consentService.InitSchema(ctx); err != nil {
+		log.Printf("⚠️ Failed to initialize consent schema: %v", err)
+	}
+	// Wire consent checker for HTTP endpoints
+	http.SetConsentChecker(consentService)
+	log.Println("✅ Consent service initialized")
+
+	// Initialize Ad Conversion service (ayeT-Studios S2S)
+	adConversionService := services.NewAdConversionService(dbService, consentService, cfg.Ads.AyetAPIKey, cfg.Ads.AyetCallbackToken)
+	if err := adConversionService.InitSchema(ctx); err != nil {
+		log.Printf("⚠️ Failed to initialize ad conversions schema: %v", err)
+	}
+	// Wire ayeT-Studios S2S callback handler
+	ayetHandler := http.NewAyetHandler(adConversionService)
+	http.SetAyetHandler(ayetHandler)
+	log.Println("✅ Ad conversion service initialized (ayeT-Studios S2S)")
+
+	// Wire ad callback token and handler (credits reward from ayet - legacy fallback)
 	http.SetAdsCallbackToken(cfg.Ads.AyetCallbackToken)
 	http.SetAdsAPIKey(cfg.Ads.AyetAPIKey)
 	http.SetAdsLinks(cfg.Ads.OfferwallURL, cfg.Ads.SurveywallURL, cfg.Ads.VideoPlacementID)

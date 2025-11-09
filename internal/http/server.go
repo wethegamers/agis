@@ -61,6 +61,9 @@ var (
 	surveywallURL    string
 	videoPlacementID string
 
+	// New S2S handler instance
+	ayetHandler *AyetHandler
+
 	// Discord session and verification API config
 	discordSession *discordgo.Session
 	loggingService interface {
@@ -126,8 +129,14 @@ func NewServer() *Server {
 	// Metrics endpoint (Prometheus metrics)
 	mux.Handle("/metrics", promhttp.Handler())
 
-	// Ad callback (ayet-studios postback)
+	// Ad callback (ayet-studios postback) - legacy fallback
 	mux.HandleFunc("/ads/ayet/callback", ayetCallbackHandler)
+	
+	// ayeT-Studios S2S callback (new integration with signature verification)
+	if ayetHandler != nil {
+		mux.HandleFunc("/ads/ayet/s2s", ayetHandler.HandleCallback)
+		mux.HandleFunc("/ads/ayet/status", ayetHandler.HandleStatus)
+	}
 
 	// Verification API
 	mux.HandleFunc("/api/verify-user", verifyUserHandler)
@@ -687,4 +696,9 @@ func SetStripeService(service StripeWebhookHandler, callback func(string, int, s
 // SetConsentChecker configures the GDPR consent service
 func SetConsentChecker(checker ConsentChecker) {
 	consentChecker = checker
+}
+
+// SetAyetHandler configures the ayeT-Studios S2S callback handler
+func SetAyetHandler(handler *AyetHandler) {
+	ayetHandler = handler
 }
