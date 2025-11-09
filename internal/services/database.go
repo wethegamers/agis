@@ -133,6 +133,11 @@ func (d *DatabaseService) DB() *sql.DB {
 	return d.db
 }
 
+// LocalMode returns whether the service is running in local mode
+func (d *DatabaseService) LocalMode() bool {
+	return d.localMode
+}
+
 func (d *DatabaseService) initDatabase() error {
 	// Create users table
 	createUsersTable := `
