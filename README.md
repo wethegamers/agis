@@ -2,19 +2,34 @@
 
 Advanced Gaming Integration System (AGIS) Bot for Discord - A Kubernetes-native Discord bot with Agones GameServer management capabilities.
 
+**Version:** 1.7.0  
+**Status:** Production Ready 🚀
+
 ## Overview
 
-A Go-based Discord bot for the WTG platform with comprehensive game server management, role-based permissions, and cloud-native deployment.
+AGIS Bot powers **WeTheGamers (WTG)** - a community-driven game server hosting platform with guild economics, dynamic pricing, and zero-touch payment automation.
 
 ## Features
 
-- **Game Server Management**: Agones GameServer integration for Minecraft, CS2, Terraria, GMod
-- **Role-Based Access**: Admin, moderator, and user command sets with proper permissions
-- **Public Lobby Management**: Community interaction and server coordination
-- **Economy System**: User balance tracking and transaction management  
-- **Database Integration**: PostgreSQL backend with automated migrations
-- **Rich Discord Integration**: Embeds, context-aware help, and interactive commands
-- **Cloud-Native**: Kubernetes deployment with GitOps, CI/CD, and secrets management
+### Core Platform
+- **16 Game Types**: Minecraft, Terraria, CS2, Valheim, Rust, ARK, Palworld, and more
+- **Dynamic Pricing System**: Database-driven costs (28-39% margins) with 5-min cache
+- **Guild Treasury**: Shared wallets enabling Titan-tier servers (Blue Ocean strategy)
+- **Server Reviews**: 1-5 star ratings with community feedback (unique to WTG)
+- **Public Lobby**: Browse and join community servers with search
+
+### Economy & Monetization
+- **Dual Currency**: GameCredits (earned) + WTG Coins (purchased)
+- **Premium Subscription**: $3.99/mo with 3x multiplier, 5 WTG allowance, 100 GC daily
+- **Stripe Integration**: Zero-touch payment automation with webhook fulfillment
+- **Automated Subscriptions**: Auto-apply benefits, background expiration, revenue tracking
+
+### Technical Excellence
+- **Cloud-Native**: Kubernetes + Agones + PostgreSQL + Minio
+- **Zero-Touch Operations**: Automated payments, subscriptions, server lifecycle
+- **Production Ready**: Health endpoints, Prometheus metrics, disaster recovery (RTO 30min)
+- **CI/CD**: GitHub Actions + Argo Workflows with multi-environment deployments
+- **Security**: Vault secrets, ExternalSecrets, RBAC, network policies
 
 ## Project Structure
 
@@ -54,7 +69,23 @@ A Go-based Discord bot for the WTG platform with comprehensive game server manag
 
 ## Documentation
 
-- **Commands**: See `COMMANDS.md` or use `/help` in Discord
-- **Changelog**: `CHANGELOG.md`
-- **Setup Guides**: `docs/webhook-setup/`
-- **Deployment Status**: `docs/deployment/`
+### For Users
+- **[User Guide](docs/USER_GUIDE.md)**: Complete guide for Discord users (591 lines)
+  - Getting started, economy system, premium benefits
+  - All 60+ commands with examples
+  - Guild treasury guide, server management, FAQ
+
+### For Operators
+- **[Operations Manual](docs/OPS_MANUAL.md)**: Full O&M guide for DevOps/SRE (1,042 lines)
+  - Architecture, deployment, monitoring, scaling
+  - Database management, backup/recovery procedures
+  - Security, troubleshooting runbooks, incident response
+- **[Quick Reference](docs/QUICK_REFERENCE.md)**: Print-ready on-call card (401 lines)
+  - 30-second health check, emergency procedures
+  - Common operations, monitoring queries, useful aliases
+
+### Technical Documentation
+- **Blockers Completed**: `docs/BLOCKER_{1,2,3,4,5,6,8}_COMPLETED.md`
+- **Commands**: See `COMMANDS.md` or use `@AGIS help` in Discord
+- **Setup Guides**: `docs/webhook-setup/`, `docs/AGONES_INTEGRATION.md`
+- **Database**: `internal/database/migrations/`, `internal/database/seeds/`
