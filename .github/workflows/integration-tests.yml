@@ -1,0 +1,152 @@
+name: Integration Tests
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'  # Run nightly at 2 AM UTC
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: agis_test
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: testpassword
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+      
+      - name: Download dependencies
+        run: go mod download
+      
+      - name: Run database migrations
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: root
+          PGPASSWORD: testpassword
+          PGDATABASE: agis_test
+        run: |
+          # Install psql client
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          
+          # Apply migrations
+          psql -f deployments/migrations/v2.0-production-enhancements.sql
+      
+      - name: Start AGIS Bot in background
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: agis_test
+          DB_USER: root
+          DB_PASSWORD: testpassword
+          AYET_API_KEY: ${{ secrets.AYET_API_KEY_SANDBOX }}
+          AYET_CALLBACK_TOKEN: ${{ secrets.AYET_CALLBACK_TOKEN_SANDBOX }}
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN_TEST }}
+          METRICS_PORT: 9090
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN_TEST }}
+          SENTRY_ENVIRONMENT: ci
+        run: |
+          go build -o agis-bot ./cmd
+          ./agis-bot &
+          AGIS_PID=$!
+          echo "AGIS_PID=$AGIS_PID" >> $GITHUB_ENV
+          
+          # Wait for bot to be ready
+          for i in {1..30}; do
+            if curl -f http://localhost:9090/healthz 2>/dev/null; then
+              echo "AGIS Bot is ready"
+              break
+            fi
+            echo "Waiting for AGIS Bot to start... ($i/30)"
+            sleep 2
+          done
+      
+      - name: Run integration tests
+        env:
+          AYET_API_KEY_SANDBOX: ${{ secrets.AYET_API_KEY_SANDBOX }}
+          AGIS_BOT_CALLBACK_URL: http://localhost:9090/ads/ayet/s2s
+          AGIS_BOT_METRICS_URL: http://localhost:9090/metrics
+          DB_HOST: localhost
+          DB_NAME: agis_test
+          DB_USER: root
+          DB_PASSWORD: testpassword
+        run: |
+          go test -tags=integration -v -timeout 10m ./internal/services 2>&1 | tee integration-test-output.txt
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: integration-test-output.txt
+          retention-days: 30
+      
+      - name: Stop AGIS Bot
+        if: always()
+        run: |
+          if [ -n "$AGIS_PID" ]; then
+            kill $AGIS_PID || true
+          fi
+      
+      - name: Check metrics endpoint
+        if: always()
+        run: |
+          echo "=== Metrics endpoint output ==="
+          curl -f http://localhost:9090/metrics || echo "Metrics endpoint not available"
+      
+      - name: Notify Discord on failure
+        if: failure() && github.event_name == 'schedule'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_CI }}
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d "{\"content\": \"❌ Nightly integration tests failed for agis-bot\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            $DISCORD_WEBHOOK
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+      
+      - name: Download dependencies
+        run: go mod download
+      
+      - name: Run unit tests
+        run: go test -v -coverprofile=coverage.out ./...
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella

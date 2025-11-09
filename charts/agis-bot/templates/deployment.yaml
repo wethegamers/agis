@@ -197,6 +197,70 @@ spec:
                   name: agis-bot-secrets
                   key: AYET_VIDEO_PLACEMENT_ID
                   optional: true
+            # Sentry Error Monitoring
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: SENTRY_DSN
+                  optional: true
+            - name: SENTRY_ENVIRONMENT
+              value: "{{ .Values.environment | default "production" }}"
+            # Metrics Configuration
+            - name: METRICS_PORT
+              value: "{{ .Values.service.port }}"
+            # Discord Webhook URLs for Alerts
+            - name: DISCORD_WEBHOOK_PAYMENTS
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: DISCORD_WEBHOOK_PAYMENTS
+                  optional: true
+            - name: DISCORD_WEBHOOK_ADS
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: DISCORD_WEBHOOK_ADS
+                  optional: true
+            - name: DISCORD_WEBHOOK_INFRA
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: DISCORD_WEBHOOK_INFRA
+                  optional: true
+            - name: DISCORD_WEBHOOK_SECURITY
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: DISCORD_WEBHOOK_SECURITY
+                  optional: true
+            - name: DISCORD_WEBHOOK_PERFORMANCE
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: DISCORD_WEBHOOK_PERFORMANCE
+                  optional: true
+            - name: DISCORD_WEBHOOK_REVENUE
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: DISCORD_WEBHOOK_REVENUE
+                  optional: true
+            - name: DISCORD_WEBHOOK_CRITICAL
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: DISCORD_WEBHOOK_CRITICAL
+                  optional: true
+            - name: DISCORD_WEBHOOK_COMPLIANCE
+              valueFrom:
+                secretKeyRef:
+                  name: agis-bot-secrets
+                  key: DISCORD_WEBHOOK_COMPLIANCE
+                  optional: true
+            # WTG Dashboard URL
+            - name: WTG_DASHBOARD_URL
+              value: "{{ .Values.wtgDashboardUrl | default "https://wethegamers.org" }}"
           # Health and readiness probes for monitoring
           livenessProbe:
             httpGet:

@@ -1,0 +1,15 @@
+{{- if .Values.monitoring.grafanaDashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agis-bot-grafana-dashboard
+  labels:
+    app: agis-bot
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: "AGIS Bot"
+data:
+  agis-bot-ad-metrics.json: |-
+{{ .Files.Get "../../deployments/grafana/ad-metrics-dashboard.json" | indent 4 }}
+{{- end }}

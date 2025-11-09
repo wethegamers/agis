@@ -89,3 +89,22 @@ vaultSecretPath: development/agis-bot
 clusterSecretStoreName: vault-kv-secret
 
 originIssuerIsEnabled: false
+
+# Environment name (used for Sentry)
+environment: production
+
+# WTG Dashboard URL
+wtgDashboardUrl: https://wethegamers.org
+
+# Monitoring configuration
+monitoring:
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    scrapeTimeout: 10s
+    labels:
+      prometheus: kube-prometheus
+    relabelings: []
+    metricRelabelings: []
+  grafanaDashboard:
+    enabled: true
