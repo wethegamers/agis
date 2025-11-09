@@ -1,3 +1,6 @@
 /agis-bot
 /bin/
 *.backup
+
+.gemini/
+gha-creds-*.json
