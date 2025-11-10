@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"agis-bot/internal/bot"
 	"agis-bot/internal/services"
 	"agis-bot/internal/version"
 )
@@ -13,8 +14,8 @@ import (
 // ProfileCommand shows user profile with stats
 type ProfileCommand struct{}
 
-func (c *ProfileCommand) Name() string { return "profile" }
-func (c *ProfileCommand) Description() string { return "View user profile and statistics" }
+func (c *ProfileCommand) Name() string                       { return "profile" }
+func (c *ProfileCommand) Description() string                { return "View user profile and statistics" }
 func (c *ProfileCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *ProfileCommand) Execute(ctx *CommandContext) error {
@@ -83,7 +84,8 @@ func (c *ProfileCommand) Execute(ctx *CommandContext) error {
 		formatDurationV1_3(time.Since(user.LastWork)),
 	)
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, profile)
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, profile)
+	return err
 }
 
 // InfoAboutCommand shows bot information
@@ -95,8 +97,8 @@ func NewInfoAboutCommand(startTime time.Time) *InfoAboutCommand {
 	return &InfoAboutCommand{startTime: startTime}
 }
 
-func (c *InfoAboutCommand) Name() string { return "about" }
-func (c *InfoAboutCommand) Description() string { return "Bot information and statistics" }
+func (c *InfoAboutCommand) Name() string                       { return "about" }
+func (c *InfoAboutCommand) Description() string                { return "Bot information and statistics" }
 func (c *InfoAboutCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *InfoAboutCommand) Execute(ctx *CommandContext) error {
@@ -111,6 +113,11 @@ func (c *InfoAboutCommand) Execute(ctx *CommandContext) error {
 	ctx.DB.DB().QueryRow(`SELECT COUNT(*) FROM users`).Scan(&totalUsers)
 	ctx.DB.DB().QueryRow(`SELECT COUNT(*) FROM game_servers`).Scan(&totalServers)
 	ctx.DB.DB().QueryRow(`SELECT COUNT(*) FROM game_servers WHERE status IN ('running', 'ready')`).Scan(&activeServers)
+
+	commit := buildInfo.GitCommit
+	if len(commit) > 7 {
+		commit = commit[:7]
+	}
 
 	info := fmt.Sprintf(
 		"🤖 **AGIS Bot Information**\n"+
@@ -132,7 +139,7 @@ func (c *InfoAboutCommand) Execute(ctx *CommandContext) error {
 			"━━━━━━━━━━━━━━━━━━━━\n"+
 			"Powered by Kubernetes & Agones",
 		buildInfo.Version,
-		buildInfo.Commit[:7],
+		commit,
 		buildInfo.BuildDate,
 		formatDurationV1_3(uptime),
 		totalUsers,
@@ -143,14 +150,15 @@ func (c *InfoAboutCommand) Execute(ctx *CommandContext) error {
 		runtime.Version(),
 	)
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, info)
+	_, err := ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, info)
+	return err
 }
 
 // InfoGamesCommand lists supported games
 type InfoGamesCommand struct{}
 
-func (c *InfoGamesCommand) Name() string { return "games" }
-func (c *InfoGamesCommand) Description() string { return "List supported games and pricing" }
+func (c *InfoGamesCommand) Name() string                       { return "games" }
+func (c *InfoGamesCommand) Description() string                { return "List supported games and pricing" }
 func (c *InfoGamesCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *InfoGamesCommand) Execute(ctx *CommandContext) error {
@@ -180,14 +188,15 @@ func (c *InfoGamesCommand) Execute(ctx *CommandContext) error {
 ━━━━━━━━━━━━━━━━━━━━
 Use ` + "`create <game> [name]`" + ` to deploy a server`
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, games)
+	_, err := ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, games)
+	return err
 }
 
 // LeaderboardCommand shows leaderboards
 type LeaderboardCommand struct{}
 
-func (c *LeaderboardCommand) Name() string { return "leaderboard" }
-func (c *LeaderboardCommand) Description() string { return "View leaderboards (credits, servers)" }
+func (c *LeaderboardCommand) Name() string                       { return "leaderboard" }
+func (c *LeaderboardCommand) Description() string                { return "View leaderboards (credits, servers)" }
 func (c *LeaderboardCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *LeaderboardCommand) Execute(ctx *CommandContext) error {
@@ -241,7 +250,8 @@ func (c *LeaderboardCommand) showCreditsLeaderboard(ctx *CommandContext) error {
 		position++
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, board.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, board.String())
+	return err
 }
 
 func (c *LeaderboardCommand) showServersLeaderboard(ctx *CommandContext) error {
@@ -279,14 +289,15 @@ func (c *LeaderboardCommand) showServersLeaderboard(ctx *CommandContext) error {
 		position++
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, board.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, board.String())
+	return err
 }
 
 // StartServerCommand starts a stopped server
 type StartServerCommand struct{}
 
-func (c *StartServerCommand) Name() string { return "start" }
-func (c *StartServerCommand) Description() string { return "Start a stopped server" }
+func (c *StartServerCommand) Name() string                       { return "start" }
+func (c *StartServerCommand) Description() string                { return "Start a stopped server" }
 func (c *StartServerCommand) RequiredPermission() bot.Permission { return bot.PermissionUser }
 
 func (c *StartServerCommand) Execute(ctx *CommandContext) error {
@@ -317,17 +328,20 @@ func (c *StartServerCommand) Execute(ctx *CommandContext) error {
 	}
 
 	// Update server status
-	if err := ctx.DB.UpdateServerStatus(targetServer.ID, "creating"); err != nil {
+	if err := ctx.DB.UpdateServerStatus(targetServer.Name, targetServer.DiscordID, "creating"); err != nil {
 		return fmt.Errorf("failed to start server: %v", err)
 	}
 
 	// Clear stopped timestamp
-	ctx.DB.UpdateServerField(targetServer.ID, "stopped_at", nil)
+	if err := ctx.DB.UpdateServerStoppedAt(targetServer.ID, nil); err != nil {
+		return fmt.Errorf("failed to clear stopped timestamp: %v", err)
+	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, fmt.Sprintf(
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, fmt.Sprintf(
 		"▶️ Starting server `%s`...\nUse `diagnostics %s` to check status.",
 		serverName, serverName,
 	))
+	return err
 }
 
 // ServerLogsCommand - DEPRECATED: Replaced by K8sLogsCommand in v1.6.0

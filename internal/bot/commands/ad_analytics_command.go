@@ -7,8 +7,6 @@ import (
 
 	"agis-bot/internal/bot"
 	"agis-bot/internal/services"
-
-	"github.com/bwmarrin/discordgo"
 )
 
 // AdAnalyticsCommand shows admin analytics for ad conversions

@@ -78,7 +78,8 @@ func (c *SubscribeCommand) showSubscriptionInfo(ctx *CommandContext) error {
 		output.WriteString("Admins can activate with: `subscribe activate @user`\n")
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, output.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, output.String())
+	return err
 }
 
 func (c *SubscribeCommand) activateSubscription(ctx *CommandContext) error {
@@ -139,7 +140,7 @@ func (c *SubscribeCommand) activateSubscription(ctx *CommandContext) error {
 		return fmt.Errorf("failed to commit subscription: %v", err)
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, fmt.Sprintf(
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, fmt.Sprintf(
 		"✅ **Premium Subscription Activated!**\n\n"+
 			"User: <@%s>\n"+
 			"Duration: %d days\n"+
@@ -147,6 +148,7 @@ func (c *SubscribeCommand) activateSubscription(ctx *CommandContext) error {
 			"WTG Granted: 5\n\n"+
 			"Benefits now active!",
 		userID, days, expiresAt.Format("2006-01-02 15:04")))
+	return err
 }
 
 func (c *SubscribeCommand) cancelSubscription(ctx *CommandContext) error {
@@ -178,12 +180,13 @@ func (c *SubscribeCommand) cancelSubscription(ctx *CommandContext) error {
 		return fmt.Errorf("failed to cancel subscription: %v", err)
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, fmt.Sprintf(
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, fmt.Sprintf(
 		"✅ **Subscription Cancelled**\n\n"+
 			"Your premium benefits will remain active until: %s\n"+
 			"After this date, you'll return to the free tier.\n\n"+
 			"We're sorry to see you go! Use `subscribe` anytime to reactivate.",
 		expiresAt.Time.Format("2006-01-02 15:04")))
+	return err
 }
 
 func (c *SubscribeCommand) showSubscriptionStatus(ctx *CommandContext) error {
@@ -242,7 +245,8 @@ func (c *SubscribeCommand) showSubscriptionStatus(ctx *CommandContext) error {
 	output.WriteString(fmt.Sprintf("💎 WTG Coins: %d\n", wtgCoins))
 	output.WriteString(fmt.Sprintf("💰 GameCredits: %d\n", credits))
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, output.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, output.String())
+	return err
 }
 
 // Helper function to check if user has active premium subscription

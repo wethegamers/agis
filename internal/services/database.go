@@ -320,12 +320,12 @@ func (d *DatabaseService) initDatabase() error {
 	)`
 
 	tables := []string{
-		createUsersTable, createServersTable, createPublicServersTable, 
+		createUsersTable, createServersTable, createPublicServersTable,
 		createUsageTable, createRolesTable, createUserStatsTable,
 		// v1.4.0
 		createBackupsTable, createFavoritesTable, createTransactionsTable,
 		createShopItemsTable, createInventoryTable,
-		// v1.5.0  
+		// v1.5.0
 		createAchievementsTable, createUserAchievementsTable, createReviewsTable,
 	}
 
@@ -521,6 +521,63 @@ func (d *DatabaseService) AddCredits(discordID string, amount int) error {
 	_, err := d.db.Exec(`
 		UPDATE users SET credits = credits + $1 WHERE discord_id = $2
 	`, amount, discordID)
+
+	return err
+}
+
+func (d *DatabaseService) DeductCredits(discordID string, amount int) error {
+	if amount <= 0 {
+		return nil
+	}
+
+	if d.localMode {
+		d.localMutex.Lock()
+		defer d.localMutex.Unlock()
+
+		user, exists := d.localUsers[discordID]
+		if !exists {
+			return fmt.Errorf("user not found")
+		}
+
+		if user.Credits < amount {
+			return fmt.Errorf("insufficient credits")
+		}
+
+		user.Credits -= amount
+		return nil
+	}
+
+	res, err := d.db.Exec(`
+		UPDATE users
+		SET credits = credits - $1
+		WHERE discord_id = $2 AND credits >= $1
+	`, amount, discordID)
+	if err != nil {
+		return err
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if affected == 0 {
+		return fmt.Errorf("insufficient credits")
+	}
+
+	return nil
+}
+
+func (d *DatabaseService) UpdateServerStoppedAt(serverID int, stoppedAt *time.Time) error {
+	if d.localMode {
+		return nil
+	}
+
+	_, err := d.db.Exec(`
+		UPDATE game_servers
+		SET stopped_at = $1
+		WHERE id = $2
+	`, stoppedAt, serverID)
 
 	return err
 }

@@ -22,7 +22,7 @@ func NewExperimentCommand(abService *services.ABTestingService) *ExperimentComma
 // HandleCreate creates a new A/B test experiment
 // Usage: /experiment create <id> <name> <traffic%> <duration_days> <variant1_id>:<multiplier> <variant2_id>:<multiplier>
 func (c *ExperimentCommand) HandleCreate(userID string, args []string) (string, error) {
-	if len(args) < 5 {
+	if len(args) < 6 {
 		return "", fmt.Errorf("usage: /experiment create <id> <name> <traffic%%> <duration_days> <control_multiplier> <variant_multiplier>")
 	}
 

@@ -72,7 +72,7 @@ func (c *GiftCreditsCommand) Execute(ctx *CommandContext) error {
 		VALUES ($1, $2, $3, $4, $5)
 	`, ctx.Message.Author.ID, recipient.ID, amount, "gift", fmt.Sprintf("Gift from %s", ctx.Message.Author.Username))
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, fmt.Sprintf(
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, fmt.Sprintf(
 		"💝 **Credit Gift Successful!**\n"+
 			"From: %s\n"+
 			"To: %s\n"+
@@ -80,6 +80,7 @@ func (c *GiftCreditsCommand) Execute(ctx *CommandContext) error {
 			"Your new balance: %d credits",
 		ctx.Message.Author.Username, recipient.Username, amount, sender.Credits-amount,
 	))
+	return err
 }
 
 // TransactionsCommand shows credit transaction history
@@ -130,7 +131,8 @@ func (c *TransactionsCommand) Execute(ctx *CommandContext) error {
 		history.WriteString("No transactions yet")
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, history.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, history.String())
+	return err
 }
 
 // FavoriteCommand manages server favorites
@@ -178,8 +180,9 @@ func (c *FavoriteCommand) addFavorite(ctx *CommandContext, serverIDStr string) e
 		return fmt.Errorf("failed to add favorite: %v", err)
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, 
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID,
 		fmt.Sprintf("⭐ Added server #%d to your favorites", serverID))
+	return err
 }
 
 func (c *FavoriteCommand) removeFavorite(ctx *CommandContext, serverIDStr string) error {
@@ -194,8 +197,9 @@ func (c *FavoriteCommand) removeFavorite(ctx *CommandContext, serverIDStr string
 		return fmt.Errorf("failed to remove favorite: %v", err)
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, 
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID,
 		fmt.Sprintf("🗑️ Removed server #%d from favorites", serverID))
+	return err
 }
 
 func (c *FavoriteCommand) listFavorites(ctx *CommandContext) error {
@@ -229,7 +233,8 @@ func (c *FavoriteCommand) listFavorites(ctx *CommandContext) error {
 		favorites.WriteString("No favorites yet. Use `favorite add <server-id>` to bookmark servers")
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, favorites.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, favorites.String())
+	return err
 }
 
 // SearchServersCommand searches public lobby
@@ -282,7 +287,8 @@ func (c *SearchServersCommand) Execute(ctx *CommandContext) error {
 		results.WriteString("No servers found matching your query")
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, results.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, results.String())
+	return err
 }
 
 // ShopCommand shows purchasable items
@@ -330,7 +336,8 @@ func (c *ShopCommand) Execute(ctx *CommandContext) error {
 		shop.WriteString("Use `buy <item-id>` to purchase")
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, shop.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, shop.String())
+	return err
 }
 
 // ============================================================================
@@ -384,7 +391,8 @@ func (c *AchievementsCommand) Execute(ctx *CommandContext) error {
 	ctx.DB.DB().QueryRow(`SELECT COUNT(*) FROM achievements`).Scan(&total)
 	achievements.WriteString(fmt.Sprintf("\nProgress: %d/%d achievements unlocked", count, total))
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, achievements.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, achievements.String())
+	return err
 }
 
 // ReviewCommand manages server reviews
@@ -424,13 +432,14 @@ func (c *ReviewCommand) Execute(ctx *CommandContext) error {
 	}
 
 	stars := strings.Repeat("⭐", rating)
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, fmt.Sprintf(
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, fmt.Sprintf(
 		"✅ **Review Submitted!**\n"+
 			"Server: #%d\n"+
 			"Rating: %s (%d/5)\n"+
 			"Comment: %s",
 		serverID, stars, rating, comment,
 	))
+	return err
 }
 
 // ReviewsCommand shows server reviews
@@ -487,5 +496,6 @@ func (c *ReviewsCommand) Execute(ctx *CommandContext) error {
 		reviews.WriteString(fmt.Sprintf("  \"%s\"\n\n", comment))
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, reviews.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, reviews.String())
+	return err
 }

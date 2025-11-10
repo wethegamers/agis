@@ -10,6 +10,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/minio/minio-go/v7 v7.0.97
 	github.com/prometheus/client_golang v1.17.0
+	github.com/stretchr/testify v1.9.0
 	github.com/stripe/stripe-go/v76 v76.25.0
 	k8s.io/api v0.28.4
 	k8s.io/apimachinery v0.28.4
@@ -58,6 +59,7 @@ require (
 	github.com/pelletier/go-toml v1.2.0 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.11.1 // indirect

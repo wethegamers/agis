@@ -117,10 +117,11 @@ func (c *K8sLogsCommand) Execute(ctx *CommandContext) error {
 		logContent = "..." + logContent[len(logContent)-maxLen:]
 	}
 
-	response := fmt.Sprintf("📋 **Logs for %s** (last %d lines)\n```\n%s\n```", 
+	response := fmt.Sprintf("📋 **Logs for %s** (last %d lines)\n```\n%s\n```",
 		serverName, lines, logContent)
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, response)
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, response)
+	return err
 }
 
 // ============================================================================
@@ -159,18 +160,19 @@ func (c *ClusterPodsCommand) Execute(ctx *CommandContext) error {
 	for _, pod := range pods.Items {
 		age := time.Since(pod.CreationTimestamp.Time).Round(time.Second)
 		status := string(pod.Status.Phase)
-		
+
 		// Truncate long names
 		name := pod.Name
 		if len(name) > 38 {
 			name = name[:35] + "..."
 		}
-		
+
 		output.WriteString(fmt.Sprintf("%-40s %-15s %s\n", name, status, formatDuration(age)))
 	}
 	output.WriteString("```")
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, output.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, output.String())
+	return err
 }
 
 // ClusterNodesCommand - List cluster nodes
@@ -209,12 +211,13 @@ func (c *ClusterNodesCommand) Execute(ctx *CommandContext) error {
 		age := time.Since(node.CreationTimestamp.Time).Round(time.Second)
 
 		output.WriteString(fmt.Sprintf("%s\n", node.Name))
-		output.WriteString(fmt.Sprintf("  Status: %s | CPU: %s | Memory: %s | Age: %s\n\n", 
+		output.WriteString(fmt.Sprintf("  Status: %s | CPU: %s | Memory: %s | Age: %s\n\n",
 			status, cpu.String(), memory.String(), formatDuration(age)))
 	}
 	output.WriteString("```")
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, output.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, output.String())
+	return err
 }
 
 // ClusterEventsCommand - List recent cluster events
@@ -255,10 +258,11 @@ func (c *ClusterEventsCommand) Execute(ctx *CommandContext) error {
 	if len(events.Items) == 0 {
 		output.WriteString("No recent events\n")
 	}
-	
+
 	output.WriteString("```")
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, output.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, output.String())
+	return err
 }
 
 // ClusterNamespacesCommand - List namespaces
@@ -290,7 +294,8 @@ func (c *ClusterNamespacesCommand) Execute(ctx *CommandContext) error {
 	}
 	output.WriteString("```")
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, output.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, output.String())
+	return err
 }
 
 // ============================================================================
@@ -339,8 +344,7 @@ func (c *BuyCommand) Execute(ctx *CommandContext) error {
 	totalBonus := bonusAmount * quantity
 
 	// Get user's current balances
-	user, err := ctx.DB.GetOrCreateUser(ctx.Message.Author.ID)
-	if err != nil {
+	if _, err := ctx.DB.GetOrCreateUser(ctx.Message.Author.ID); err != nil {
 		return fmt.Errorf("failed to get user: %v", err)
 	}
 
@@ -351,14 +355,14 @@ func (c *BuyCommand) Execute(ctx *CommandContext) error {
 	if currencyType == "USD" {
 		// WTG purchases (real money items)
 		if wtgBalance < totalPrice {
-			return fmt.Errorf("insufficient WTG. Required: %d WTG, You have: %d WTG\n💡 Purchase WTG with `shop` command", 
+			return fmt.Errorf("insufficient WTG. Required: %d WTG, You have: %d WTG\n💡 Purchase WTG with `shop` command",
 				totalPrice, wtgBalance)
 		}
 		paymentCurrency = "WTG"
 	} else {
 		// GC purchases (soft currency items)
 		if gcBalance < totalPrice {
-			return fmt.Errorf("insufficient GameCredits. Required: %d GC, You have: %d GC\n💡 Earn GC with `credits earn`, `daily`, or `work`", 
+			return fmt.Errorf("insufficient GameCredits. Required: %d GC, You have: %d GC\n💡 Earn GC with `credits earn`, `daily`, or `work`",
 				totalPrice, gcBalance)
 		}
 		paymentCurrency = "GC"
@@ -450,11 +454,12 @@ func (c *BuyCommand) Execute(ctx *CommandContext) error {
 		confirmation = fmt.Sprintf("✅ **Purchase Successful!**\n\n"+
 			"Item: **%s** x%d\n"+
 			"Cost: %d %s\n\n"+
-			"Added to your inventory! Use `inventory` to view.", 
+			"Added to your inventory! Use `inventory` to view.",
 			itemName, quantity, totalPrice, paymentCurrency)
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, confirmation)
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, confirmation)
+	return err
 }
 
 // ConvertCommand - Convert WTG to GC
@@ -517,11 +522,12 @@ func (c *ConvertCommand) Execute(ctx *CommandContext) error {
 		return fmt.Errorf("failed to complete conversion: %v", err)
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, fmt.Sprintf(
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, fmt.Sprintf(
 		"✅ **Conversion Successful!**\n\n"+
 		"Converted: **%d WTG** → **%d GameCredits**\n"+
 		"Rate: 1 WTG = 1000 GC",
 		wtgAmount, gcAmount))
+	return err
 }
 
 // InventoryCommand - View purchased items
@@ -568,7 +574,8 @@ func (c *InventoryCommand) Execute(ctx *CommandContext) error {
 		output.WriteString("*Your inventory is empty*\n\n💡 Browse items with `shop`")
 	}
 
-	return ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, output.String())
+	_, err = ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, output.String())
+	return err
 }
 
 // ============================================================================

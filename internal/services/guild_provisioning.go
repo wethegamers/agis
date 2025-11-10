@@ -286,11 +286,11 @@ func (s *GuildProvisioningService) scheduleTermination(guildID, serverID string,
 		err := s.renewServer(ctx, guildID, serverID)
 		if err != nil {
 			// Not enough balance, terminate
-			s.terminateServer(ctx, guildID, serverID)
+			s.TerminateServer(ctx, guildID, serverID)
 		}
 	} else {
 		// No auto-renew, terminate
-		s.terminateServer(ctx, guildID, serverID)
+		s.TerminateServer(ctx, guildID, serverID)
 	}
 }
 
@@ -344,8 +344,8 @@ func (s *GuildProvisioningService) renewServer(ctx context.Context, guildID, ser
 	return nil
 }
 
-// terminateServer terminates a running server
-func (s *GuildProvisioningService) terminateServer(ctx context.Context, guildID, serverID string) error {
+// TerminateServer gracefully terminates a running server
+func (s *GuildProvisioningService) TerminateServer(ctx context.Context, guildID, serverID string) error {
 	if s.agonesService != nil {
 		// Delete server via Agones
 		err := s.agonesService.DeleteGameServer(ctx, serverID)
