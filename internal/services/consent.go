@@ -30,6 +30,36 @@ type UserConsent struct {
 	UpdatedAt          time.Time
 }
 
+// InitSchema creates the consent tracking table
+func (s *ConsentService) InitSchema(ctx context.Context) error {
+	if s.db == nil {
+		return nil
+	}
+
+	const createTable = `
+	CREATE TABLE IF NOT EXISTS user_ad_consent (
+		user_id BIGINT PRIMARY KEY,
+		consented BOOLEAN DEFAULT FALSE,
+		consent_timestamp TIMESTAMP,
+		withdrawn_timestamp TIMESTAMP,
+		ip_country VARCHAR(2),
+		gdpr_version VARCHAR(10) DEFAULT 'v1.0',
+		consent_method VARCHAR(50) DEFAULT 'unknown',
+		created_at TIMESTAMP DEFAULT NOW(),
+		updated_at TIMESTAMP DEFAULT NOW()
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_user_ad_consent_country ON user_ad_consent(ip_country);
+	CREATE INDEX IF NOT EXISTS idx_user_ad_consent_timestamp ON user_ad_consent(consent_timestamp);
+	`
+
+	if _, err := s.db.ExecContext(ctx, createTable); err != nil {
+		return fmt.Errorf("failed to create user_ad_consent table: %w", err)
+	}
+
+	return nil
+}
+
 // ConsentStats represents aggregate consent statistics
 type ConsentStats struct {
 	TotalUsers          int

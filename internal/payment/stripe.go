@@ -150,7 +150,7 @@ func (w *WebhookEvent) GetSessionID() string { return w.SessionID }
 func (w *WebhookEvent) GetAmountPaid() int64 { return w.AmountPaid }
 
 // HandleWebhook processes Stripe webhook events
-func (s *StripeService) HandleWebhook(w http.ResponseWriter, r *http.Request) (*WebhookEvent, error) {
+func (s *StripeService) HandleWebhook(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	const MaxBodyBytes = int64(65536)
 	r.Body = http.MaxBytesReader(w, r.Body, MaxBodyBytes)
 
@@ -166,6 +166,7 @@ func (s *StripeService) HandleWebhook(w http.ResponseWriter, r *http.Request) (*
 	}
 
 	log.Printf("📥 Received Stripe webhook: %s", event.Type)
+	log.Printf("Stripe payload size: %d bytes", len(payload))
 
 	// Handle specific event types
 	switch event.Type {

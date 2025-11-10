@@ -16,6 +16,7 @@ import (
 	"agis-bot/internal/http"
 	"agis-bot/internal/payment"
 	"agis-bot/internal/services"
+	"agis-bot/internal/version"
 
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/lib/pq"
@@ -217,7 +218,7 @@ func main() {
 	log.Println("✅ Logging service initialized")
 
 	// Initialize GDPR consent service (BLOCKER 7)
-	consentService := services.NewConsentService(dbService)
+	consentService := services.NewConsentService(dbService.DB())
 	ctx := context.Background()
 	if err := consentService.InitSchema(ctx); err != nil {
 		log.Printf("⚠️ Failed to initialize consent schema: %v", err)
