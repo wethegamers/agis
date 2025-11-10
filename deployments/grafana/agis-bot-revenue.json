@@ -1,0 +1,209 @@
+{
+  "dashboard": {
+    "title": "AGIS Bot - Ad Revenue Dashboard",
+    "tags": ["agis-bot", "revenue", "ads"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total Ad Conversions (Today)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(agis_ad_conversions_total{status=\"completed\"}[24h]))",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 100, "color": "yellow"},
+                {"value": 500, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Total GC Rewarded (Today)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(agis_ad_rewards_total[24h]))",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"value": 0, "color": "blue"},
+                {"value": 10000, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Average Callback Latency",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "avg(agis_ad_callback_latency_seconds)",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 3, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Fraud Detection Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(agis_ad_conversions_total{status=\"fraud\"}[24h])) / sum(increase(agis_ad_conversions_total[24h])) * 100",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 5, "color": "yellow"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Ad Conversions by Type",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(agis_ad_conversions_total{status=\"completed\"}[5m])) by (type)",
+            "legendFormat": "{{type}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "legend": {"show": true},
+        "yaxes": [
+          {"format": "ops", "label": "Conversions/sec"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "GC Rewards Distribution",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(agis_ad_rewards_total[5m])) by (type)",
+            "legendFormat": "{{type}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+      },
+      {
+        "id": 7,
+        "title": "Callback Latency by Provider",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(agis_ad_callback_latency_seconds_bucket[5m])) by (provider, le))",
+            "legendFormat": "p95 - {{provider}}",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(agis_ad_callback_latency_seconds_bucket[5m])) by (provider, le))",
+            "legendFormat": "p99 - {{provider}}",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "yaxes": [
+          {"format": "s", "label": "Latency"}
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Hourly Revenue Trend",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(increase(agis_ad_rewards_total[1h]))",
+            "legendFormat": "GC per hour",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}
+      },
+      {
+        "id": 9,
+        "title": "Conversion Status Breakdown",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum(agis_ad_conversions_total) by (status)",
+            "legendFormat": "{{status}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 20}
+      },
+      {
+        "id": 10,
+        "title": "Top Earning Users (Last 24h)",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, sum(increase(agis_ad_rewards_total[24h])) by (user_id))",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 16, "x": 8, "y": 20}
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "Prometheus",
+          "expr": "changes(process_start_time_seconds[5m]) > 0",
+          "step": "60s",
+          "titleFormat": "Bot Restart"
+        }
+      ]
+    }
+  }
+}

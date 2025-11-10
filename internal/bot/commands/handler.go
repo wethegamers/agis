@@ -29,6 +29,14 @@ type CommandContext struct {
 	Notifications  *services.NotificationService
 	Agones         *services.AgonesService
 	PricingService *services.PricingService // BLOCKER 1: Dynamic pricing
+	SchedulerService interface { // Scheduler service for automated server management
+		CreateSchedule(serverID int, discordID, action, cronExpr, timezone string) (*services.ServerSchedule, error)
+		ListSchedules(discordID string) ([]*services.ServerSchedule, error)
+		DeleteSchedule(scheduleID int, discordID string) error
+		EnableSchedule(scheduleID int, discordID string) error
+		DisableSchedule(scheduleID int, discordID string) error
+		GetServerSchedules(serverID int, discordID string) ([]*services.ServerSchedule, error)
+	}
 }
 
 // Command represents a bot command
@@ -50,6 +58,14 @@ type CommandHandler struct {
 	notifications  *services.NotificationService
 	agones         *services.AgonesService
 	pricingService *services.PricingService // BLOCKER 1: Dynamic pricing
+	scheduler interface { // Scheduler service interface
+		CreateSchedule(serverID int, discordID, action, cronExpr, timezone string) (*services.ServerSchedule, error)
+		ListSchedules(discordID string) ([]*services.ServerSchedule, error)
+		DeleteSchedule(scheduleID int, discordID string) error
+		EnableSchedule(scheduleID int, discordID string) error
+		DisableSchedule(scheduleID int, discordID string) error
+		GetServerSchedules(serverID int, discordID string) ([]*services.ServerSchedule, error)
+	}
 }
 
 func NewCommandHandler(cfg *config.Config, db *services.DatabaseService, logger *services.LoggingService) *CommandHandler {
@@ -141,6 +157,9 @@ func (h *CommandHandler) registerCommands() {
 	h.Register(&ConvertCommand{})        // WTG to GC conversion
 	h.Register(&InventoryCommand{})      // View purchased items
 	h.Register(&SubscribeCommand{})      // Premium subscription management
+
+	// v1.7.0 Critical features
+	h.Register(&ScheduleCommand{})       // Server scheduling (cron-based automation)
 
 	// Debug command
 	h.Register(&DebugPermissionsCommand{})
@@ -254,7 +273,8 @@ func (h *CommandHandler) HandleMessage(s *discordgo.Session, m *discordgo.Messag
 			EnhancedServer: h.enhancedServer,
 			Notifications:  h.notifications,
 			Agones:         h.agones,
-			PricingService: h.pricingService, // BLOCKER 1
+			PricingService:  h.pricingService, // BLOCKER 1
+			SchedulerService: h.scheduler,      // v1.7.0 Server scheduling
 		}
 
 		// Log command execution
@@ -299,7 +319,8 @@ func (h *CommandHandler) HandleMessage(s *discordgo.Session, m *discordgo.Messag
 				EnhancedServer: h.enhancedServer,
 				Notifications:  h.notifications,
 				Agones:         h.agones,
-				PricingService: h.pricingService, // BLOCKER 1
+				PricingService:  h.pricingService, // BLOCKER 1
+				SchedulerService: h.scheduler,      // v1.7.0 Server scheduling
 			}
 			helpCmd.Execute(ctx)
 		}
@@ -336,4 +357,22 @@ func (h *CommandHandler) SetDiscordSession(session *discordgo.Session) {
 	if h.notifications != nil {
 		h.notifications.SetDiscordSession(session)
 	}
+}
+
+// SetScheduler sets the scheduler service instance
+func (h *CommandHandler) SetScheduler(scheduler interface {
+	CreateSchedule(serverID int, discordID, action, cronExpr, timezone string) (*services.ServerSchedule, error)
+	ListSchedules(discordID string) ([]*services.ServerSchedule, error)
+	DeleteSchedule(scheduleID int, discordID string) error
+	EnableSchedule(scheduleID int, discordID string) error
+	DisableSchedule(scheduleID int, discordID string) error
+	GetServerSchedules(serverID int, discordID string) ([]*services.ServerSchedule, error)
+}) {
+	h.scheduler = scheduler
+	log.Println("✅ Scheduler service wired to command handler")
+}
+
+// Agones returns the Agones service (may be nil if Agones unavailable)
+func (h *CommandHandler) Agones() *services.AgonesService {
+	return h.agones
 }

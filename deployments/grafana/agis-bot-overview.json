@@ -1,0 +1,112 @@
+{
+  "dashboard": {
+    "title": "AGIS Bot - Overview Dashboard",
+    "tags": ["agis-bot", "overview"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Active Users",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "agis_bot_active_users",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Total Servers",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(agis_bot_servers_active)",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Commands Executed (Last Hour)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(agis_bot_commands_total[1h]))",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Credit Transactions (Last Hour)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(agis_bot_credits_transactions[1h]))",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "Commands Per Minute",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(agis_bot_commands_total[5m])) by (command)",
+            "legendFormat": "{{command}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+      },
+      {
+        "id": 6,
+        "title": "Servers by Game Type",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "agis_bot_servers_active",
+            "legendFormat": "{{game_type}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+      },
+      {
+        "id": 7,
+        "title": "Database Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(agis_bot_database_operations_total[5m])",
+            "legendFormat": "{{operation}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
+      },
+      {
+        "id": 8,
+        "title": "Command Success Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(agis_bot_commands_total{status=\"success\"}[5m])) / sum(rate(agis_bot_commands_total[5m])) * 100",
+            "legendFormat": "Success Rate %",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}
+      }
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agis-bot-dockerfile
+  namespace: agis-bot-dev
+data:
+  Dockerfile: |
+    FROM golang:1.23-alpine as builder
+    ARG VERSION=v1.7.0
+    ARG GIT_COMMIT=unknown
+    ARG BUILD_DATE=unknown
+    WORKDIR /app
+    COPY go.mod go.sum ./
+    RUN go mod download
+    COPY . .
+    RUN go build -ldflags="-X agis-bot/internal/version.Version=${VERSION} -X agis-bot/internal/version.GitCommit=${GIT_COMMIT} -X agis-bot/internal/version.BuildDate=${BUILD_DATE}" -o agis-bot .
+
+    FROM alpine:3.18
+    WORKDIR /app
+    RUN apk --no-cache add ca-certificates
+    COPY --from=builder /app/agis-bot ./agis-bot
+    COPY --from=builder /app/.env.example ./.env.example
+    EXPOSE 9090 8080
+    ENTRYPOINT ["./agis-bot"]
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: agis-bot-build-v1-7-0
+  namespace: agis-bot-dev
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      serviceAccountName: agis-bot
+      restartPolicy: Never
+      containers:
+      - name: kaniko
+        image: gcr.io/kaniko-project/executor:latest
+        args:
+        - "--dockerfile=/workspace/Dockerfile"
+        - "--context=git://github.com/wethegamers/agis-bot.git#main"
+        - "--destination=ghcr.io/wethegamers/agis-bot:v1.7.0"
+        - "--destination=ghcr.io/wethegamers/agis-bot:latest"
+        - "--cache=true"
+        - "--cache-ttl=24h"
+        volumeMounts:
+        - name: dockerfile
+          mountPath: /workspace
+        - name: docker-config
+          mountPath: /kaniko/.docker/
+      volumes:
+      - name: dockerfile
+        configMap:
+          name: agis-bot-dockerfile
+      - name: docker-config
+        secret:
+          secretName: ghcr-cred
+          items:
+          - key: .dockerconfigjson
+            path: config.json

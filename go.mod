@@ -6,10 +6,12 @@ require (
 	agones.dev/agones v1.38.0
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/getsentry/sentry-go v0.36.2
+	github.com/gorilla/mux v1.8.1
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/minio/minio-go/v7 v7.0.97
 	github.com/prometheus/client_golang v1.17.0
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.9.0
 	github.com/stripe/stripe-go/v76 v76.25.0
 	k8s.io/api v0.28.4

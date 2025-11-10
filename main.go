@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"agis-bot/internal/api"
 	"agis-bot/internal/bot"
 	"agis-bot/internal/bot/commands"
 	"agis-bot/internal/config"
@@ -106,6 +107,38 @@ var (
 		},
 		[]string{"tier"}, // free/premium/premium_plus
 	)
+
+	// Scheduler metrics
+	schedulerActiveSchedules = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "agis_scheduler_active_schedules",
+			Help: "Number of active server schedules",
+		},
+	)
+	schedulerExecutionsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "agis_scheduler_executions_total",
+			Help: "Total scheduler executions",
+		},
+		[]string{"action", "status"},
+	)
+
+	// API metrics
+	apiRequestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "agis_api_requests_total",
+			Help: "Total REST API requests",
+		},
+		[]string{"method", "endpoint", "status"},
+	)
+	apiRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "agis_api_request_duration_seconds",
+			Help:    "API request duration in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method", "endpoint"},
+	)
 )
 
 func main() {
@@ -141,6 +174,10 @@ func main() {
 	prometheus.MustRegister(adFraudAttemptsTotal)
 	prometheus.MustRegister(adCallbackLatency)
 	prometheus.MustRegister(adConversionsByTier)
+	prometheus.MustRegister(schedulerActiveSchedules)
+	prometheus.MustRegister(schedulerExecutionsTotal)
+	prometheus.MustRegister(apiRequestsTotal)
+	prometheus.MustRegister(apiRequestDuration)
 
 	// Start HTTP server with metrics, health checks, and info endpoints
 	httpServer := http.NewServer()
@@ -361,6 +398,38 @@ func main() {
 	// Initialize modular command handler
 	commandHandler = commands.NewCommandHandler(cfg, dbService, loggingService)
 	log.Println("✅ Modular command system initialized")
+
+	// Initialize scheduler service with metrics
+	var schedulerService *services.SchedulerService
+	if commandHandler.EnhancedService() != nil {
+		schedulerService = services.NewSchedulerService(dbService, commandHandler.EnhancedService(), schedulerActiveSchedules, schedulerExecutionsTotal)
+		if err := schedulerService.Start(); err != nil {
+			log.Printf("⚠️ Failed to start scheduler: %v", err)
+		} else {
+			log.Println("✅ Scheduler service started")
+			commandHandler.SetScheduler(schedulerService)
+		}
+	} else {
+		log.Println("⚠️ Enhanced server service not available - scheduler disabled")
+	}
+
+	// Initialize REST API server (separate from metrics HTTP server)
+	if commandHandler.EnhancedService() != nil && commandHandler.Agones() != nil {
+		apiPort := os.Getenv("API_PORT")
+		if apiPort == "" {
+			apiPort = "8080"
+		}
+		apiServer := api.NewAPIServer(":"+apiPort, dbService, commandHandler.Agones(), commandHandler.EnhancedService())
+		go func() {
+			log.Printf("🚀 Starting REST API server on :%s", apiPort)
+			if err := apiServer.Start(); err != nil {
+				log.Printf("⚠️ Failed to start API server: %v", err)
+			}
+		}()
+		log.Println("✅ REST API v1 initialized")
+	} else {
+		log.Println("⚠️ REST API disabled - missing required services")
+	}
 	
 	// Register ad analytics command (requires AdConversionService)
 	adAnalyticsCmd := commands.NewAdAnalyticsCommand(adConversionService)
@@ -451,6 +520,12 @@ func main() {
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	// Stop scheduler
+	if schedulerService != nil {
+		schedulerService.Stop()
+		log.Println("✅ Scheduler service stopped")
+	}
 
 	// Shutdown HTTP server
 	if err := httpServer.Stop(ctx); err != nil {
