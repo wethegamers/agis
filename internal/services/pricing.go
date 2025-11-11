@@ -15,6 +15,7 @@ type GamePricing struct {
 	DisplayName   string    // User-friendly name
 	Description   string    // Brief description
 	IsActive      bool      // Whether this game is available
+	RequiresGuild bool      // Whether this game requires guild treasury (Titan-tier)
 	MinCredits    int       // Minimum credits required to create
 	UpdatedAt     time.Time // Last time pricing was updated
 }
@@ -56,6 +57,7 @@ func (p *PricingService) initPricingTable() error {
 		display_name VARCHAR(100) NOT NULL,
 		description TEXT DEFAULT '',
 		is_active BOOLEAN DEFAULT true,
+		requires_guild BOOLEAN DEFAULT false,
 		min_credits INTEGER NOT NULL,
 		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	)`
@@ -68,12 +70,13 @@ func (p *PricingService) initPricingTable() error {
 	// Seed initial pricing (matches Economy Plan v2.0)
 	// CRITICAL: These are REAL costs based on actual infrastructure
 	seedPricing := `
-	INSERT INTO game_pricing (game_type, cost_per_hour, display_name, description, is_active, min_credits)
+	INSERT INTO game_pricing (game_type, cost_per_hour, display_name, description, is_active, requires_guild, min_credits)
 	VALUES 
-		('minecraft', 5, 'Minecraft Java Edition', 'Vanilla or modded Minecraft server', true, 5),
-		('cs2', 8, 'Counter-Strike 2', 'CS2 dedicated server', true, 8),
-		('terraria', 3, 'Terraria', 'Multiplayer Terraria world', true, 3),
-		('gmod', 6, 'Garry''s Mod', 'GMod server with addons', true, 6)
+		('minecraft', 5, 'Minecraft Java Edition', 'Vanilla or modded Minecraft server', true, false, 5),
+		('cs2', 8, 'Counter-Strike 2', 'CS2 dedicated server', true, false, 8),
+		('terraria', 3, 'Terraria', 'Multiplayer Terraria world', true, false, 3),
+		('gmod', 6, 'Garry''s Mod', 'GMod server with addons', true, false, 6),
+		('ark', 240, 'ARK: Survival Evolved', 'TITAN-TIER: Requires guild pooling', true, true, 240)
 	ON CONFLICT (game_type) DO NOTHING
 	`
 
@@ -84,7 +87,7 @@ func (p *PricingService) initPricingTable() error {
 // syncPricing reloads pricing from database
 func (p *PricingService) syncPricing() error {
 	rows, err := p.db.Query(`
-		SELECT game_type, cost_per_hour, display_name, description, is_active, min_credits, updated_at
+		SELECT game_type, cost_per_hour, display_name, description, is_active, requires_guild, min_credits, updated_at
 		FROM game_pricing
 		WHERE is_active = true
 	`)
@@ -105,6 +108,7 @@ func (p *PricingService) syncPricing() error {
 			&pricing.DisplayName,
 			&pricing.Description,
 			&pricing.IsActive,
+			&pricing.RequiresGuild,
 			&pricing.MinCredits,
 			&pricing.UpdatedAt,
 		)

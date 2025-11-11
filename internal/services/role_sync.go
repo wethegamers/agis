@@ -14,17 +14,19 @@ type RoleSyncService struct {
 	session        *discordgo.Session
 	guildID        string
 	verifiedRoleID string
+	premiumRoleID  string
 	interval       time.Duration
 	stopChan       chan struct{}
 }
 
 // NewRoleSyncService creates a new role sync service
-func NewRoleSyncService(db *sql.DB, session *discordgo.Session, guildID, verifiedRoleID string, interval time.Duration) *RoleSyncService {
+func NewRoleSyncService(db *sql.DB, session *discordgo.Session, guildID, verifiedRoleID, premiumRoleID string, interval time.Duration) *RoleSyncService {
 	return &RoleSyncService{
 		db:             db,
 		session:        session,
 		guildID:        guildID,
 		verifiedRoleID: verifiedRoleID,
+		premiumRoleID:  premiumRoleID,
 		interval:       interval,
 		stopChan:       make(chan struct{}),
 	}
@@ -148,6 +150,9 @@ func (rs *RoleSyncService) syncRoles() {
 	}
 	
 	log.Printf("[RoleSync] Sync complete: %d synced, %d skipped, %d errors", synced, skipped, errors)
+	
+	// Sync premium roles (v1.7.0)
+	rs.syncPremiumRoles()
 }
 
 // getAllGuildMembers fetches all members from the guild (handles pagination)
@@ -197,4 +202,114 @@ func (rs *RoleSyncService) hasRole(member *discordgo.Member, roleID string) bool
 		}
 	}
 	return false
+}
+
+// syncPremiumRoles syncs premium subscription roles
+func (rs *RoleSyncService) syncPremiumRoles() {
+	if rs.premiumRoleID == "" {
+		log.Println("[RoleSync] Premium role ID not configured, skipping premium sync")
+		return
+	}
+	
+	log.Println("[RoleSync] Starting premium role sync...")
+	
+	// Query users with active premium subscriptions
+	query := `
+		SELECT DISTINCT u.discord_id
+		FROM users u
+		LEFT JOIN subscriptions s ON u.discord_id = s.discord_id
+		WHERE u.tier = 'premium' 
+		   OR (s.status = 'active' AND s.end_date > NOW())
+	`
+	
+	rows, err := rs.db.Query(query)
+	if err != nil {
+		log.Printf("[RoleSync] ERROR querying premium users: %v", err)
+		return
+	}
+	defer rows.Close()
+	
+	premiumUsers := make([]string, 0)
+	for rows.Next() {
+		var userID string
+		if err := rows.Scan(&userID); err != nil {
+			log.Printf("[RoleSync] ERROR scanning premium user ID: %v", err)
+			continue
+		}
+		premiumUsers = append(premiumUsers, userID)
+	}
+	
+	if len(premiumUsers) == 0 {
+		log.Println("[RoleSync] No premium users found")
+		return
+	}
+	
+	log.Printf("[RoleSync] Found %d premium users", len(premiumUsers))
+	
+	// Get all guild members
+	members, err := rs.getAllGuildMembers()
+	if err != nil {
+		log.Printf("[RoleSync] ERROR fetching guild members for premium sync: %v", err)
+		return
+	}
+	
+	synced := 0
+	removed := 0
+	skipped := 0
+	errors := 0
+	
+	// Add premium role to premium users
+	for _, userID := range premiumUsers {
+		member := rs.findMember(members, userID)
+		if member == nil {
+			skipped++
+			continue
+		}
+		
+		if rs.hasRole(member, rs.premiumRoleID) {
+			skipped++
+			continue
+		}
+		
+		err := rs.session.GuildMemberRoleAdd(rs.guildID, userID, rs.premiumRoleID)
+		if err != nil {
+			log.Printf("[RoleSync] ERROR adding premium role to user %s: %v", userID, err)
+			errors++
+			continue
+		}
+		
+		log.Printf("[RoleSync] ✅ Added premium role to %s#%s", member.User.Username, member.User.Discriminator)
+		synced++
+		time.Sleep(100 * time.Millisecond)
+	}
+	
+	// Remove premium role from non-premium users who have it
+	premiumUserMap := make(map[string]bool)
+	for _, userID := range premiumUsers {
+		premiumUserMap[userID] = true
+	}
+	
+	for _, member := range members {
+		if !rs.hasRole(member, rs.premiumRoleID) {
+			continue
+		}
+		
+		if premiumUserMap[member.User.ID] {
+			continue // User is premium, keep role
+		}
+		
+		// User has premium role but shouldn't - remove it
+		err := rs.session.GuildMemberRoleRemove(rs.guildID, member.User.ID, rs.premiumRoleID)
+		if err != nil {
+			log.Printf("[RoleSync] ERROR removing premium role from user %s: %v", member.User.ID, err)
+			errors++
+			continue
+		}
+		
+		log.Printf("[RoleSync] 🔻 Removed premium role from %s#%s (subscription expired)", member.User.Username, member.User.Discriminator)
+		removed++
+		time.Sleep(100 * time.Millisecond)
+	}
+	
+	log.Printf("[RoleSync] Premium sync complete: %d added, %d removed, %d skipped, %d errors", synced, removed, skipped, errors)
 }

@@ -5,9 +5,11 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"crypto/subtle"
+	"embed"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -19,6 +21,30 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+//go:embed templates/*.html
+var templatesFS embed.FS
+
+var templates *template.Template
+
+// tmplSubstr safely returns a substring by rune position
+func tmplSubstr(s string, start, length int) string {
+	if start < 0 {
+		start = 0
+	}
+	if length < 0 {
+		length = 0
+	}
+	rs := []rune(s)
+	if start >= len(rs) {
+		return ""
+	}
+	end := start + length
+	if end > len(rs) {
+		end = len(rs)
+	}
+	return string(rs[start:end])
+}
 
 // Server represents the HTTP server for metrics and health checks
 type Server struct {
@@ -82,6 +108,9 @@ var (
 	
 	// GDPR consent service (v1.7.0 BLOCKER 7)
 	consentChecker ConsentChecker
+
+	// Admin dashboard data provider
+	adminDashboardProvider func(ctx context.Context) (*AdminDashboardData, error)
 )
 
 // ConsentChecker interface for GDPR compliance
@@ -109,6 +138,17 @@ func SetAdsLinks(offerwall, survey, videoID string) {
 
 // NewServer creates a new HTTP server
 func NewServer() *Server {
+	// Initialize templates
+	var err error
+	templates, err = template.New("all").Funcs(template.FuncMap{
+		"substr": tmplSubstr,
+	}).ParseFS(templatesFS, "templates/*.html")
+	if err != nil {
+		log.Printf("⚠️ Failed to parse templates: %v (falling back to inline HTML)", err)
+	} else {
+		log.Printf("✅ Loaded HTML templates successfully")
+	}
+	
 	mux := http.NewServeMux()
 
 	// Health endpoint
@@ -146,6 +186,9 @@ func NewServer() *Server {
 
 	// Ads landing page
 	mux.HandleFunc("/ads", adsPageHandler)
+
+	// Admin dashboard
+	mux.HandleFunc("/admin/dashboard", adminDashboardHandler)
 
 	// ads.txt at domain root per ayeT requirement
 	mux.HandleFunc("/ads.txt", adsTxtHandler)
@@ -553,34 +596,33 @@ func adsPageHandler(w http.ResponseWriter, r *http.Request) {
 			if requiresConsent && !hasConsent {
 				// User needs to give consent first
 				w.WriteHeader(http.StatusForbidden)
-				consentHTML := `<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				
+				if templates != nil {
+					err := templates.ExecuteTemplate(w, "consent_required.html", nil)
+					if err != nil {
+						log.Printf("Template error: %v", err)
+						w.Write([]byte("<html><body><h2>Consent Required</h2><p>Use /consent in Discord</p></body></html>"))
+					}
+				} else {
+					// Fallback if templates failed to load
+					consentHTML := `<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Consent Required</title></head><body>
 <h2>⚠️ Consent Required</h2>
 <p>Before you can earn Game Credits through ads, you must give consent for ad viewing.</p>
-<p><strong>Please use the Discord command <code>/consent</code> to give your consent.</strong></p>
+<p><strong>Please use the Discord command <code>/consent agree</code> to give your consent.</strong></p>
 <p>After giving consent, you'll be able to access ads and start earning.</p>
 <hr>
 <small>This is required under GDPR regulations for users in the EU/EEA.</small>
 </body></html>`
-				_, _ = w.Write([]byte(consentHTML))
+					_, _ = w.Write([]byte(consentHTML))
+				}
 				return
 			}
 		}
 	}
-	tpl := `<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Earn Credits</title></head><body>
-<h2>Earn Game Credits</h2>
-<p>User: %s</p>
-<ul>
-<li>Offerwall: %s</li>
-<li>Surveywall: %s</li>
-<li>Rewarded Video: %s</li>
-</ul>
-<small>Credits are awarded automatically after completion. If not, they will post within a few minutes.</small>
-</body></html>`
-	ol := "(not configured)"
-	sl := "(not configured)"
-	vl := "(not configured)"
+	// Build offerwall URL
+	var offerwallFinal string
 	if offerwallURL != "" && uid != "" {
 		ow := offerwallURL
 		if strings.Contains(ow, "{YOUR_USER_IDENTIFIER}") {
@@ -590,8 +632,11 @@ func adsPageHandler(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(ow, "?") {
 			sep = "&"
 		}
-		ol = "<a target=\"_blank\" rel=\"noopener\" href=\"" + ow + sep + "externalIdentifier=" + uid + "\">Open Offerwall</a>"
+		offerwallFinal = ow + sep + "externalIdentifier=" + uid
 	}
+	
+	// Build surveywall URL
+	var surveywallFinal string
 	if surveywallURL != "" && uid != "" {
 		sw := surveywallURL
 		if strings.Contains(sw, "{YOUR_USER_IDENTIFIER}") {
@@ -601,12 +646,57 @@ func adsPageHandler(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(sw, "?") {
 			sep = "&"
 		}
-		sl = "<a target=\"_blank\" rel=\"noopener\" href=\"" + sw + sep + "externalIdentifier=" + uid + "\">Open Surveywall</a>"
+		surveywallFinal = sw + sep + "externalIdentifier=" + uid
 	}
-	if videoPlacementID != "" && uid != "" {
-		vl = "<a href=\"#\" onclick=\"alert('Integrate video SDK on your web app using placement ` + videoPlacementID + `');return false;\">Play Rewarded Video</a>"
+	
+	// Render template
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	
+	data := map[string]interface{}{
+		"UserID":            uid,
+		"OfferwallEnabled":  offerwallFinal != "",
+		"OfferwallURL":      offerwallFinal,
+		"SurveywallEnabled": surveywallFinal != "",
+		"SurveywallURL":     surveywallFinal,
+		"VideoEnabled":      videoPlacementID != "",
+		"VideoPlacementID":  videoPlacementID,
 	}
-	_, _ = w.Write([]byte(fmt.Sprintf(tpl, uid, ol, sl, vl)))
+	
+	if templates != nil {
+		err := templates.ExecuteTemplate(w, "ad_dashboard.html", data)
+		if err != nil {
+			log.Printf("Template error: %v", err)
+			// Fallback to simple HTML
+			fallbackHTML := fmt.Sprintf(`<html><body><h2>Earn Credits</h2><p>User: %s</p><p>Offerwall: <a href="%s">Open</a></p></body></html>`, uid, offerwallFinal)
+			w.Write([]byte(fallbackHTML))
+		}
+	} else {
+		// Fallback if templates failed to load
+		tpl := `<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Earn Credits</title></head><body>
+<h2>Earn Game Credits</h2>
+<p>User: %s</p>
+<ul>
+<li>Offerwall: %s</li>
+<li>Surveywall: %s</li>
+<li>Rewarded Video: %s</li>
+</ul>
+<small>Credits are awarded automatically after completion.</small>
+</body></html>`
+		ol := "(not configured)"
+		sl := "(not configured)"
+		vl := "(not configured)"
+		if offerwallFinal != "" {
+			ol = fmt.Sprintf(`<a target="_blank" rel="noopener" href="%s">Open Offerwall</a>`, offerwallFinal)
+		}
+		if surveywallFinal != "" {
+			sl = fmt.Sprintf(`<a target="_blank" rel="noopener" href="%s">Open Surveywall</a>`, surveywallFinal)
+		}
+		if videoPlacementID != "" {
+			vl = "(Coming Soon)"
+		}
+		_, _ = w.Write([]byte(fmt.Sprintf(tpl, uid, ol, sl, vl)))
+	}
 }
 
 // Root handler
@@ -701,4 +791,85 @@ func SetConsentChecker(checker ConsentChecker) {
 // SetAyetHandler configures the ayeT-Studios S2S callback handler
 func SetAyetHandler(handler *AyetHandler) {
 	ayetHandler = handler
+}
+
+// AdminDashboardData contains all metrics for the admin dashboard
+type AdminDashboardData struct {
+	// Server metrics
+	TotalServers       int
+	ActiveServers      int
+	ServerUtilization  int
+	Servers            []AdminServer
+	
+	// User metrics
+	TotalUsers        int
+	PremiumUsers      int
+	PremiumPercentage int
+	
+	// Guild metrics
+	TotalGuilds          int
+	TotalTreasuryBalance int
+	TopGuilds            []AdminGuild
+	
+	// Credit metrics
+	CreditsEarnedToday int
+	
+	// Resource metrics
+	CPUUsage          int
+	MemoryUsage       int
+	NetworkIO         float64
+	NetworkUtilization int
+	
+	// System info
+	Version string
+}
+
+// AdminServer represents a server in the admin dashboard
+type AdminServer struct {
+	Name             string
+	GameType         string
+	OwnerUsername    string
+	Status           string
+	UptimeFormatted  string
+	CostPerHour      int
+}
+
+// AdminGuild represents a guild in the admin dashboard
+type AdminGuild struct {
+	GuildName   string
+	Balance     int
+	MemberCount int
+}
+
+// SetAdminDashboardProvider configures the admin dashboard data provider
+func SetAdminDashboardProvider(provider func(ctx context.Context) (*AdminDashboardData, error)) {
+	adminDashboardProvider = provider
+}
+
+// Admin dashboard handler
+func adminDashboardHandler(w http.ResponseWriter, r *http.Request) {
+	if adminDashboardProvider == nil {
+		http.Error(w, "Admin dashboard not configured", http.StatusServiceUnavailable)
+		return
+	}
+	
+	data, err := adminDashboardProvider(r.Context())
+	if err != nil {
+		log.Printf("❌ Failed to load admin dashboard data: %v", err)
+		http.Error(w, "Failed to load dashboard", http.StatusInternalServerError)
+		return
+	}
+	
+	// Use template if available
+	if templates != nil {
+		if err := templates.ExecuteTemplate(w, "admin_dashboard.html", data); err != nil {
+			log.Printf("❌ Template execution error: %v", err)
+			http.Error(w, "Template error", http.StatusInternalServerError)
+		}
+		return
+	}
+	
+	// Fallback to JSON response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(data)
 }

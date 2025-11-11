@@ -161,6 +161,14 @@ func (h *CommandHandler) registerCommands() {
 	// v1.7.0 Critical features
 	h.Register(&ScheduleCommand{})       // Server scheduling (cron-based automation)
 
+	// Guild economy commands (expose treasury system)
+	guildTreasuryService := services.NewGuildTreasuryService(h.db)
+	h.Register(NewGuildCreateCommand(guildTreasuryService))  // guild-create <name>
+	h.Register(NewGuildInviteCommand(guildTreasuryService))  // guild-invite <@user> <guild_id>
+	h.Register(NewGuildDepositCommand(guildTreasuryService)) // guild-deposit <guild_id> <amount>
+	h.Register(NewGuildTreasuryCommand(guildTreasuryService)) // guild-treasury <guild_id>
+	h.Register(NewGuildJoinCommand()) // guild-join <guild_id> (placeholder)
+
 	// Debug command
 	h.Register(&DebugPermissionsCommand{})
 

@@ -472,6 +472,52 @@ func main() {
 		return out, nil
 	})
 
+	// Wire admin dashboard provider (aggregated metrics)
+	http.SetAdminDashboardProvider(func(ctx context.Context) (*http.AdminDashboardData, error) {
+		// Fetch data from database service
+		dataRaw, err := dbService.GetAdminDashboardData()
+		if err != nil {
+			return nil, err
+		}
+		// Map to http struct to avoid import cycle
+		data := &http.AdminDashboardData{
+			TotalServers:        dataRaw.TotalServers,
+			ActiveServers:       dataRaw.ActiveServers,
+			ServerUtilization:   dataRaw.ServerUtilization,
+			Servers:             make([]http.AdminServer, 0, len(dataRaw.Servers)),
+			TotalUsers:          dataRaw.TotalUsers,
+			PremiumUsers:        dataRaw.PremiumUsers,
+			PremiumPercentage:   dataRaw.PremiumPercentage,
+			TotalGuilds:         dataRaw.TotalGuilds,
+			TotalTreasuryBalance: dataRaw.TotalTreasuryBalance,
+			TopGuilds:           make([]http.AdminGuild, 0, len(dataRaw.TopGuilds)),
+			CreditsEarnedToday:  dataRaw.CreditsEarnedToday,
+			CPUUsage:            dataRaw.CPUUsage,
+			MemoryUsage:         dataRaw.MemoryUsage,
+			NetworkIO:           dataRaw.NetworkIO,
+			NetworkUtilization:  dataRaw.NetworkUtilization,
+			Version:             version.Version,
+		}
+		for _, s := range dataRaw.Servers {
+			data.Servers = append(data.Servers, http.AdminServer{
+				Name:            s.Name,
+				GameType:        s.GameType,
+				OwnerUsername:   s.OwnerUsername,
+				Status:          s.Status,
+				UptimeFormatted: s.UptimeFormatted,
+				CostPerHour:     s.CostPerHour,
+			})
+		}
+		for _, g := range dataRaw.TopGuilds {
+			data.TopGuilds = append(data.TopGuilds, http.AdminGuild{
+				GuildName:   g.GuildName,
+				Balance:     g.Balance,
+				MemberCount: g.MemberCount,
+			})
+		}
+		return data, nil
+	})
+
 	// Initialize event handlers for verified role protection
 	eventHandlers := bot.NewEventHandlers(loggingService, cfg.Roles.VerifiedRoleID, cfg.Discord.GuildID)
 
@@ -497,7 +543,7 @@ func main() {
 		
 		// Initialize role sync service after Discord connection (sync every 10 minutes)
 		if cfg.Roles.VerifiedRoleID != "" && cfg.Discord.GuildID != "" {
-			roleSyncService := services.NewRoleSyncService(dbService.DB(), session, cfg.Discord.GuildID, cfg.Roles.VerifiedRoleID, 10*time.Minute)
+			roleSyncService := services.NewRoleSyncService(dbService.DB(), session, cfg.Discord.GuildID, cfg.Roles.VerifiedRoleID, cfg.Roles.PremiumRoleID, 10*time.Minute)
 			go roleSyncService.Start()
 		}
 		

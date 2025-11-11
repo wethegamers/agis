@@ -41,9 +41,10 @@ type WTGConfig struct {
 }
 
 type RoleConfig struct {
-	AdminRoles     []string
-	ModRoles       []string
-	VerifiedRoleID string
+	AdminRoles      []string
+	ModRoles        []string
+	VerifiedRoleID  string
+	PremiumRoleID   string // Premium subscription role (v1.7.0)
 	VerifyAPISecret string
 }
 
@@ -83,7 +84,8 @@ func Load() *Config {
 		Roles: RoleConfig{
 			AdminRoles:      parseRoles(getEnvOrDefault("ADMIN_ROLES", "")),
 			ModRoles:        parseRoles(getEnvOrDefault("MOD_ROLES", "")),
-			VerifiedRoleID: getEnvOrDefault("VERIFIED_ROLE_ID", ""),
+			VerifiedRoleID:  getEnvOrDefault("VERIFIED_ROLE_ID", ""),
+			PremiumRoleID:   getEnvOrDefault("PREMIUM_ROLE_ID", ""),
 			VerifyAPISecret: getEnvOrDefault("VERIFY_API_SECRET", ""),
 		},
 		Ads: AdsConfig{

@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"agis-bot/internal/services"
+	_ "agis-bot/internal/services"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	_ "github.com/stretchr/testify/require"
 )
 
 func TestSchedulerService_ValidateCronExpression(t *testing.T) {

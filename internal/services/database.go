@@ -1142,3 +1142,152 @@ func (d *DatabaseService) UpdateServerAddress(serverName, discordID, address str
 		address, port, serverName, discordID)
 	return err
 }
+
+// GetAdminDashboardData retrieves all metrics for the admin dashboard
+func (d *DatabaseService) GetAdminDashboardData() (*AdminDashboardData, error) {
+	if d.localMode {
+		return &AdminDashboardData{
+			TotalServers: 0,
+			ActiveServers: 0,
+			TotalUsers: 0,
+			PremiumUsers: 0,
+			TotalGuilds: 0,
+			Servers: []AdminServer{},
+			TopGuilds: []AdminGuild{},
+		}, nil
+	}
+	
+	data := &AdminDashboardData{
+		Servers: []AdminServer{},
+		TopGuilds: []AdminGuild{},
+	}
+	
+	// Server metrics
+	d.db.QueryRow(`SELECT COUNT(*) FROM game_servers`).Scan(&data.TotalServers)
+	d.db.QueryRow(`SELECT COUNT(*) FROM game_servers WHERE status IN ('running', 'ready')`).Scan(&data.ActiveServers)
+	if data.TotalServers > 0 {
+		data.ServerUtilization = (data.ActiveServers * 100) / data.TotalServers
+	}
+	
+	// User metrics
+	d.db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&data.TotalUsers)
+	d.db.QueryRow(`SELECT COUNT(*) FROM users WHERE tier = 'premium' OR id IN (SELECT user_id FROM subscriptions WHERE status = 'active')`).Scan(&data.PremiumUsers)
+	if data.TotalUsers > 0 {
+		data.PremiumPercentage = (data.PremiumUsers * 100) / data.TotalUsers
+	}
+	
+	// Guild metrics
+	d.db.QueryRow(`SELECT COUNT(*), COALESCE(SUM(balance), 0) FROM guild_treasury`).Scan(&data.TotalGuilds, &data.TotalTreasuryBalance)
+	
+	// Credits earned today
+	d.db.QueryRow(`
+		SELECT COALESCE(SUM(amount), 0) 
+		FROM audit_log 
+		WHERE action = 'credits_earned' 
+		AND timestamp >= CURRENT_DATE`).Scan(&data.CreditsEarnedToday)
+	
+	// Active servers list
+	rows, err := d.db.Query(`
+		SELECT gs.name, gs.game_type, u.discord_id, gs.status, gs.created_at, gs.cost_per_hour
+		FROM game_servers gs
+		LEFT JOIN users u ON gs.discord_id = u.discord_id
+		WHERE gs.status IN ('running', 'ready')
+		ORDER BY gs.created_at DESC
+		LIMIT 20`)
+	if err != nil {
+		log.Printf("⚠️ Failed to query active servers: %v", err)
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var server AdminServer
+			var createdAt time.Time
+			var ownerID string
+			rows.Scan(&server.Name, &server.GameType, &ownerID, &server.Status, &createdAt, &server.CostPerHour)
+			
+			// Format uptime
+			uptime := time.Since(createdAt)
+			hours := int(uptime.Hours())
+			minutes := int(uptime.Minutes()) % 60
+			server.UptimeFormatted = fmt.Sprintf("%dh %dm", hours, minutes)
+			if len(ownerID) > 8 {
+				server.OwnerUsername = ownerID[:8] + "..."
+			} else {
+				server.OwnerUsername = ownerID
+			}
+			
+			data.Servers = append(data.Servers, server)
+		}
+	}
+	
+	// Top guilds by treasury balance
+	guildRows, err := d.db.Query(`
+		SELECT gt.guild_name, gt.balance, COUNT(gm.user_id)
+		FROM guild_treasury gt
+		LEFT JOIN guild_members gm ON gt.id = gm.guild_id
+		GROUP BY gt.id, gt.guild_name, gt.balance
+		ORDER BY gt.balance DESC
+		LIMIT 5`)
+	if err != nil {
+		log.Printf("⚠️ Failed to query top guilds: %v", err)
+	} else {
+		defer guildRows.Close()
+		for guildRows.Next() {
+			var guild AdminGuild
+			guildRows.Scan(&guild.GuildName, &guild.Balance, &guild.MemberCount)
+			data.TopGuilds = append(data.TopGuilds, guild)
+		}
+	}
+	
+	// Resource usage - mock for now (would integrate with Kubernetes metrics API)
+	data.CPUUsage = 45
+	data.MemoryUsage = 62
+	data.NetworkIO = 12.4
+	data.NetworkUtilization = 35
+	
+	return data, nil
+}
+
+// AdminDashboardData contains all metrics for the admin dashboard
+type AdminDashboardData struct {
+	// Server metrics
+	TotalServers      int
+	ActiveServers     int
+	ServerUtilization int
+	Servers           []AdminServer
+
+	// User metrics
+	TotalUsers        int
+	PremiumUsers      int
+	PremiumPercentage int
+
+	// Guild metrics
+	TotalGuilds          int
+	TotalTreasuryBalance int
+	TopGuilds            []AdminGuild
+
+	// Credit metrics
+	CreditsEarnedToday int
+
+	// Resource metrics
+	CPUUsage           int
+	MemoryUsage        int
+	NetworkIO          float64
+	NetworkUtilization int
+}
+
+// AdminServer represents a server in the admin dashboard
+type AdminServer struct {
+	Name            string
+	GameType        string
+	OwnerUsername   string
+	Status          string
+	UptimeFormatted string
+	CostPerHour     int
+}
+
+// AdminGuild represents a guild in the admin dashboard
+type AdminGuild struct {
+	GuildName   string
+	Balance     int
+	MemberCount int
+}

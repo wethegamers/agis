@@ -99,7 +99,9 @@ func (c *CreateServerCommand) Execute(ctx *CommandContext) error {
 		allPricing := ctx.PricingService.GetAllPricing()
 		availableGames := make([]string, 0, len(allPricing))
 		for _, p := range allPricing {
-			availableGames = append(availableGames, fmt.Sprintf("%s (%d GC/hr)", p.GameType, p.CostPerHour))
+			if !p.RequiresGuild {
+				availableGames = append(availableGames, fmt.Sprintf("%s (%d GC/hr)", p.GameType, p.CostPerHour))
+			}
 		}
 
 		embed := &discordgo.MessageEmbed{
@@ -111,6 +113,38 @@ func (c *CreateServerCommand) Execute(ctx *CommandContext) error {
 					Name:  "Available Games",
 					Value: strings.Join(availableGames, ", "),
 				},
+				{
+					Name:  "💡 Titan-Tier Servers",
+					Value: "High-resource games like ARK require guild pooling. Use `guild-create` first.",
+				},
+			},
+		}
+		_, err := ctx.Session.ChannelMessageSendEmbed(ctx.Message.ChannelID, embed)
+		return err
+	}
+
+	// CRITICAL: Enforce requires_guild for Titan-tier servers
+	if pricing.RequiresGuild {
+		embed := &discordgo.MessageEmbed{
+			Title:       "🏰 Guild Required",
+			Description: fmt.Sprintf("**%s** is a Titan-tier game that requires guild pooling", pricing.DisplayName),
+			Color:       0xff9900,
+			Fields: []*discordgo.MessageEmbedField{
+				{
+					Name:  "Why Guild-Only?",
+					Value: fmt.Sprintf("This game costs **%d GC/hour**—too expensive for individual users. Guilds pool resources from multiple members.", pricing.CostPerHour),
+				},
+				{
+					Name:  "How to Create This Server",
+					Value: "1. Create a guild: `guild-create <name>`\n2. Invite members: `guild-invite @user <guild_id>`\n3. Pool credits: `guild-deposit <guild_id> <amount>`\n4. Create server: Use guild-server commands",
+				},
+				{
+					Name:  "💡 Alternative",
+					Value: "Consider lighter games like Minecraft (30 GC/hr) or CS2 (120 GC/hr) for individual play.",
+				},
+			},
+			Footer: &discordgo.MessageEmbedFooter{
+				Text: "Guild treasuries enable premium experiences impossible for competitors",
 			},
 		}
 		_, err := ctx.Session.ChannelMessageSendEmbed(ctx.Message.ChannelID, embed)
