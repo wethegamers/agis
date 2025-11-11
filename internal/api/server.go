@@ -246,7 +246,7 @@ func (api *APIServer) rateLimitMiddleware(next http.Handler) http.Handler {
 
 		// Try to get API key from context (preferred for accurate rate limiting)
 		if apiKey, ok := r.Context().Value("api_key").(*services.APIKey); ok && apiKey != nil {
-			rateLimitKey = fmt.Sprintf("api_key:%s", apiKey.ID)
+			rateLimitKey = fmt.Sprintf("api_key:%d", apiKey.ID)
 			rateLimitValue = apiKey.RateLimit
 		} else if discordID, ok := r.Context().Value("discord_id").(string); ok {
 			// Fallback to discord_id for legacy bearer tokens
