@@ -34,6 +34,13 @@ AGIS (Agones GameServer Integration System) is a Discord bot that manages game s
 - `work` - Complete infrastructure tasks (1h cooldown)
 - `daily` - Claim daily bonus credits
 
+#### **Guild Economy**
+- `guild-create <name>` - Create a guild treasury and become owner
+- `guild-invite <@user> <guild_id>` - Invite a member (owner/admin)
+- `guild-deposit <guild_id> <amount>` - Deposit your GameCredits into the guild treasury
+- `guild-treasury <guild_id>` - View balance and top contributors
+- `guild-join <guild_id>` - How to join (invite required)
+
 #### **Public Lobby**
 - `lobby list` - Browse all public servers
 - `lobby add <server> [description]` - Share your server publicly

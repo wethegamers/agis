@@ -1,0 +1,59 @@
+# Repomix-specific ignore patterns to reduce noise and token usage
+# Inherits .gitignore plus default built-ins. Add only repo-specific extras.
+
+# Build & binary outputs
+bin/
+build/
+log/
+*.log
+*.backup
+coverage/
+.tmp/
+
+# Deployment / generated charts + large infra manifests (keep root helm chart files though)
+charts/**
+deployments/**
+
+# VCS internals
+.git/
+.gemini/
+
+# Secrets / env
+.env
+.env.*
+*.env
+gha-creds-*.json
+
+# Node & vendored deps (not present now, precaution)
+node_modules/**
+vendor/**
+
+# Media & binary assets (paths still appear in structure)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+
+# Archives
+*.zip
+*.tar
+*.gz
+*.tgz
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+
+# Temporary / scratch
+*.swp
+*.tmp
+
+# Ignore extremely large YAML fleets if unnecessary (comment out if you want them)
+free-tier-fleet.yaml
+premium-tier-fleet.yaml
+
+# Python bytecode (for proxy scripts)
+__pycache__/**
+*.pyc
