@@ -1,3 +1,19 @@
+//go:build ignore
+// +build ignore
+
+package docs
+
+import (
+	"agis-bot/internal/api"
+	"agis-bot/internal/bot/commands"
+	"context"
+	"log"
+	"os"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
+
 // This file shows the exact changes needed in main.go
 // Apply these changes to integrate REST API and Scheduler
 
@@ -6,12 +22,13 @@
 // ============================================
 // Add these to your import block (around line 13-26):
 
-import (
-    // ... existing imports ...
-    "agis-bot/internal/api"                    // ADD THIS
-    "agis-bot/internal/services/scheduler"     // ADD THIS  
-    "github.com/gorilla/mux"                   // ADD THIS (for API routing)
-)
+// The following import block is illustrative only and not compiled.
+// import (
+//     // ... existing imports ...
+//     "agis-bot/internal/api"                    // ADD THIS
+//     "agis-bot/internal/services/scheduler"     // ADD THIS
+//     "github.com/gorilla/mux"                   // ADD THIS (for API routing)
+// )
 
 // ============================================
 // STEP 2: Add scheduler metrics (after line 108, with other metrics)
