@@ -6,6 +6,7 @@ This proxy service receives GitHub webhook events and formats them into Discord-
 ## 🚀 **Quick Deploy**
 
 ```bash
+cd deployments/webhook-proxy
 ./deploy-webhook-proxy.sh
 ```
 
@@ -13,8 +14,11 @@ This proxy service receives GitHub webhook events and formats them into Discord-
 
 ### 1. **Build and Deploy**
 ```bash
+# Navigate to webhook-proxy directory
+cd deployments/webhook-proxy
+
 # Build the container
-docker build -f webhook-proxy.Dockerfile -t ghcr.io/wethegamers/github-discord-proxy:latest .
+docker build -f Dockerfile.webhook-proxy -t ghcr.io/wethegamers/github-discord-proxy:latest .
 
 # Push to registry
 docker push ghcr.io/wethegamers/github-discord-proxy:latest

@@ -18,14 +18,19 @@ This webhook proxy converts GitHub events to Discord-compatible messages.
 
 ## Quick Setup
 
+All webhook proxy files are located in `deployments/webhook-proxy/`.
+
 ### Option 1: Run Locally (Testing)
 ```bash
+cd deployments/webhook-proxy
 python3 github-discord-webhook-proxy.py
 ```
 Webhook URL: `http://your-server:8080`
 
 ### Option 2: Deploy to Kubernetes
 ```bash
+cd deployments/webhook-proxy
+
 # Build container
 docker build -f Dockerfile.webhook-proxy -t github-discord-proxy .
 

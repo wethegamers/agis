@@ -475,15 +475,159 @@ func (api *APIServer) deleteServer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *APIServer) startServer(w http.ResponseWriter, r *http.Request) {
-	api.respondError(w, http.StatusNotImplemented, "NOT_IMPLEMENTED", "Start server endpoint coming soon")
+	vars := mux.Vars(r)
+	serverID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		api.respondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid server ID")
+		return
+	}
+
+	discordID := r.Context().Value("discord_id").(string)
+
+	// Verify ownership by checking if server exists in user's servers
+	servers, err := api.db.GetUserServers(discordID)
+	if err != nil {
+		api.respondError(w, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to fetch servers")
+		return
+	}
+
+	var server *services.GameServer
+	for _, s := range servers {
+		if s.ID == serverID {
+			server = s
+			break
+		}
+	}
+
+	if server == nil {
+		api.respondError(w, http.StatusNotFound, "NOT_FOUND", "Server not found")
+		return
+	}
+
+	// Check if EnhancedServerService is available
+	if api.enhanced == nil {
+		api.respondError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Server management service unavailable")
+		return
+	}
+
+	// Start the server
+	if err := api.enhanced.StartGameServer(context.Background(), serverID, discordID); err != nil {
+		api.respondError(w, http.StatusBadRequest, "START_FAILED", fmt.Sprintf("Failed to start server: %v", err))
+		return
+	}
+
+	api.respondSuccess(w, http.StatusOK, map[string]interface{}{
+		"message": "Server start initiated",
+		"server": map[string]interface{}{
+			"id":     server.ID,
+			"name":   server.Name,
+			"status": "creating",
+		},
+	})
 }
 
 func (api *APIServer) stopServer(w http.ResponseWriter, r *http.Request) {
-	api.respondError(w, http.StatusNotImplemented, "NOT_IMPLEMENTED", "Stop server endpoint coming soon")
+	vars := mux.Vars(r)
+	serverID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		api.respondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid server ID")
+		return
+	}
+
+	discordID := r.Context().Value("discord_id").(string)
+
+	// Verify ownership
+	servers, err := api.db.GetUserServers(discordID)
+	if err != nil {
+		api.respondError(w, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to fetch servers")
+		return
+	}
+
+	var server *services.GameServer
+	for _, s := range servers {
+		if s.ID == serverID {
+			server = s
+			break
+		}
+	}
+
+	if server == nil {
+		api.respondError(w, http.StatusNotFound, "NOT_FOUND", "Server not found")
+		return
+	}
+
+	// Check if EnhancedServerService is available
+	if api.enhanced == nil {
+		api.respondError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Server management service unavailable")
+		return
+	}
+
+	// Stop the server
+	if err := api.enhanced.StopGameServer(context.Background(), serverID, discordID); err != nil {
+		api.respondError(w, http.StatusBadRequest, "STOP_FAILED", fmt.Sprintf("Failed to stop server: %v", err))
+		return
+	}
+
+	api.respondSuccess(w, http.StatusOK, map[string]interface{}{
+		"message": "Server stop initiated",
+		"server": map[string]interface{}{
+			"id":     server.ID,
+			"name":   server.Name,
+			"status": "stopping",
+		},
+	})
 }
 
 func (api *APIServer) restartServer(w http.ResponseWriter, r *http.Request) {
-	api.respondError(w, http.StatusNotImplemented, "NOT_IMPLEMENTED", "Restart server endpoint coming soon")
+	vars := mux.Vars(r)
+	serverID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		api.respondError(w, http.StatusBadRequest, "INVALID_ID", "Invalid server ID")
+		return
+	}
+
+	discordID := r.Context().Value("discord_id").(string)
+
+	// Verify ownership
+	servers, err := api.db.GetUserServers(discordID)
+	if err != nil {
+		api.respondError(w, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to fetch servers")
+		return
+	}
+
+	var server *services.GameServer
+	for _, s := range servers {
+		if s.ID == serverID {
+			server = s
+			break
+		}
+	}
+
+	if server == nil {
+		api.respondError(w, http.StatusNotFound, "NOT_FOUND", "Server not found")
+		return
+	}
+
+	// Check if EnhancedServerService is available
+	if api.enhanced == nil {
+		api.respondError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Server management service unavailable")
+		return
+	}
+
+	// Restart the server
+	if err := api.enhanced.RestartGameServer(context.Background(), serverID, discordID); err != nil {
+		api.respondError(w, http.StatusBadRequest, "RESTART_FAILED", fmt.Sprintf("Failed to restart server: %v", err))
+		return
+	}
+
+	api.respondSuccess(w, http.StatusOK, map[string]interface{}{
+		"message": "Server restart initiated",
+		"server": map[string]interface{}{
+			"id":     server.ID,
+			"name":   server.Name,
+			"status": "restarting",
+		},
+	})
 }
 
 func (api *APIServer) getCurrentUser(w http.ResponseWriter, r *http.Request) {

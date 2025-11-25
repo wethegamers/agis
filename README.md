@@ -39,13 +39,26 @@ AGIS Bot powers **WeTheGamers (WTG)** - a community-driven game server hosting p
 ├── charts/                # Helm chart for Kubernetes deployment
 ├── cmd/                   # Application entrypoints
 ├── internal/              # Internal Go packages
+│   ├── agones/           # Agones SDK client
+│   ├── bot/              # Discord bot and commands
+│   ├── config/           # Configuration management
+│   ├── database/         # Database migrations and seeds
+│   ├── http/             # HTTP server (webhooks, metrics, API)
+│   ├── payment/          # Stripe integration
+│   └── services/         # Business logic services
 ├── scripts/               # Build and deployment scripts
-├── deployments/           # Additional deployment resources
-│   ├── github-discord-webhook-proxy.py
-│   └── Dockerfile.webhook-proxy
-└── docs/                  # Documentation
-    ├── deployment/        # Deployment and completion docs
-    └── webhook-setup/     # Webhook configuration guides
+├── deployments/           # Kubernetes deployment resources
+│   ├── k8s/              # Kubernetes manifests
+│   │   └── fleets/       # Agones Fleet configurations
+│   ├── webhook-proxy/    # GitHub-Discord webhook proxy
+│   ├── grafana/          # Grafana dashboards
+│   ├── migrations/       # Database migrations
+│   └── sentry/           # Sentry configuration
+├── docs/                  # Documentation
+│   ├── setup/            # Setup and configuration guides
+│   ├── webhook-setup/    # Webhook configuration
+│   └── archive/          # Historical documentation
+└── archive/               # Legacy milestone tracking
 ```
 
 ## Quick Start

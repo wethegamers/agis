@@ -325,6 +325,178 @@ func (e *EnhancedServerService) GetUserServersEnhanced(ctx context.Context, user
 	return servers, nil
 }
 
+// StopGameServer stops a running server by deleting the GameServer and updating database status
+func (e *EnhancedServerService) StopGameServer(ctx context.Context, serverID int, userID string) error {
+	// Get server from database
+	servers, err := e.db.GetUserServers(userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user servers: %v", err)
+	}
+
+	var targetServer *GameServer
+	for _, s := range servers {
+		if s.ID == serverID {
+			targetServer = s
+			break
+		}
+	}
+
+	if targetServer == nil {
+		return fmt.Errorf("server not found or not owned by user")
+	}
+
+	// Check if server is already stopped
+	if targetServer.Status == "stopped" || targetServer.Status == "terminated" {
+		return fmt.Errorf("server is already stopped")
+	}
+
+	// Update database status to stopping
+	if err := e.db.UpdateServerStatus(targetServer.Name, userID, "stopping"); err != nil {
+		return fmt.Errorf("failed to update server status: %v", err)
+	}
+
+	// Delete GameServer from Agones if it exists
+	if targetServer.KubernetesUID != "" && e.agones != nil {
+		if err := e.agones.DeleteGameServerByUID(ctx, targetServer.KubernetesUID); err != nil {
+			log.Printf("Warning: Failed to delete GameServer from Agones: %v", err)
+		}
+	}
+
+	// Update status to stopped
+	now := time.Now()
+	if err := e.db.UpdateServerStoppedAt(targetServer.ID, &now); err != nil {
+		log.Printf("Warning: Failed to update stopped_at: %v", err)
+	}
+
+	if err := e.db.UpdateServerStatus(targetServer.Name, userID, "stopped"); err != nil {
+		return fmt.Errorf("failed to update final status: %v", err)
+	}
+
+	// Send notification
+	e.notifications.NotifyServerStatusChange(ServerStatusUpdate{
+		ServerName:     targetServer.Name,
+		UserID:         userID,
+		PreviousStatus: "running",
+		NewStatus:      "Stopped",
+		GameType:       targetServer.GameType,
+	})
+
+	log.Printf("✅ Stopped server %s (ID: %d) for user %s", targetServer.Name, serverID, userID)
+	return nil
+}
+
+// StartGameServer starts a stopped server by recreating the GameServer
+func (e *EnhancedServerService) StartGameServer(ctx context.Context, serverID int, userID string) error {
+	// Get server from database
+	servers, err := e.db.GetUserServers(userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user servers: %v", err)
+	}
+
+	var targetServer *GameServer
+	for _, s := range servers {
+		if s.ID == serverID {
+			targetServer = s
+			break
+		}
+	}
+
+	if targetServer == nil {
+		return fmt.Errorf("server not found or not owned by user")
+	}
+
+	// Check if server is stopped
+	if targetServer.Status != "stopped" {
+		return fmt.Errorf("server is not stopped (current status: %s)", targetServer.Status)
+	}
+
+	// Update status to creating
+	if err := e.db.UpdateServerStatus(targetServer.Name, userID, "creating"); err != nil {
+		return fmt.Errorf("failed to update server status: %v", err)
+	}
+
+	// Clear stopped_at timestamp
+	if err := e.db.UpdateServerStoppedAt(targetServer.ID, nil); err != nil {
+		log.Printf("Warning: Failed to clear stopped_at: %v", err)
+	}
+
+	// Send notification
+	e.notifications.NotifyServerStatusChange(ServerStatusUpdate{
+		ServerName:     targetServer.Name,
+		UserID:         userID,
+		PreviousStatus: "stopped",
+		NewStatus:      "Creating",
+		GameType:       targetServer.GameType,
+	})
+
+	// Allocate new GameServer asynchronously
+	go e.allocateServerAsync(ctx, targetServer, "")
+
+	log.Printf("✅ Starting server %s (ID: %d) for user %s", targetServer.Name, serverID, userID)
+	return nil
+}
+
+// RestartGameServer restarts a running server by stopping and starting it
+func (e *EnhancedServerService) RestartGameServer(ctx context.Context, serverID int, userID string) error {
+	// Get server from database
+	servers, err := e.db.GetUserServers(userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user servers: %v", err)
+	}
+
+	var targetServer *GameServer
+	for _, s := range servers {
+		if s.ID == serverID {
+			targetServer = s
+			break
+		}
+	}
+
+	if targetServer == nil {
+		return fmt.Errorf("server not found or not owned by user")
+	}
+
+	// Check if server is running
+	if targetServer.Status != "running" && targetServer.Status != "ready" && targetServer.Status != "allocated" {
+		return fmt.Errorf("server is not running (current status: %s)", targetServer.Status)
+	}
+
+	// Update status to restarting
+	if err := e.db.UpdateServerStatus(targetServer.Name, userID, "restarting"); err != nil {
+		return fmt.Errorf("failed to update server status: %v", err)
+	}
+
+	// Send notification
+	e.notifications.NotifyServerStatusChange(ServerStatusUpdate{
+		ServerName:     targetServer.Name,
+		UserID:         userID,
+		PreviousStatus: targetServer.Status,
+		NewStatus:      "Restarting",
+		GameType:       targetServer.GameType,
+	})
+
+	// Delete existing GameServer
+	if targetServer.KubernetesUID != "" && e.agones != nil {
+		if err := e.agones.DeleteGameServerByUID(ctx, targetServer.KubernetesUID); err != nil {
+			log.Printf("Warning: Failed to delete GameServer during restart: %v", err)
+		}
+	}
+
+	// Brief pause to allow cleanup
+	time.Sleep(2 * time.Second)
+
+	// Update status to creating
+	if err := e.db.UpdateServerStatus(targetServer.Name, userID, "creating"); err != nil {
+		return fmt.Errorf("failed to update server status to creating: %v", err)
+	}
+
+	// Allocate new GameServer asynchronously
+	go e.allocateServerAsync(ctx, targetServer, "")
+
+	log.Printf("✅ Restarting server %s (ID: %d) for user %s", targetServer.Name, serverID, userID)
+	return nil
+}
+
 // DeleteGameServer deletes a game server from both database and Kubernetes
 func (e *EnhancedServerService) DeleteGameServer(ctx context.Context, serverName, userID string) error {
 	// Get server info

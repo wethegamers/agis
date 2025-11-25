@@ -30,11 +30,12 @@
 - **Monitoring**: Discord notifications for CI/CD events
 
 ### GitHub Webhook Proxy
-Located in `deployments/` directory:
+Located in `deployments/webhook-proxy/` directory:
 - `github-discord-webhook-proxy.py` - Python webhook server
 - `Dockerfile.webhook-proxy` - Container build file
+- `webhook-proxy-readme.md` - Setup documentation
 
-For setup instructions, see `docs/webhook-setup/`.
+For setup instructions, see `docs/setup/` and `docs/webhook-setup/`.
 
 ## Next Steps
 Monitor the CI/CD pipeline and Discord notifications to ensure all deployments are successful.

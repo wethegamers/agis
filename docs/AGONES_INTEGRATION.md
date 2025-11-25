@@ -160,8 +160,8 @@ agis-bot exposes webhook endpoints for:
 - External game server events
 
 Webhooks are available at:
-- `https://agis-bot.wtg-dev.lan/webhook/github`
-- `https://agis-bot.wtg-dev.lan/webhook/agones`
+- `https://agis-bot.development.wtgg.org/webhook/github`
+- `https://agis-bot.development.wtgg.org/webhook/agones`
 
 ## Troubleshooting
 

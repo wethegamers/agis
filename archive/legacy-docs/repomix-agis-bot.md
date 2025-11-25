@@ -4889,8 +4889,8 @@ agis-bot exposes webhook endpoints for:
 - External game server events
 
 Webhooks are available at:
-- `https://agis-bot.wtg-dev.lan/webhook/github`
-- `https://agis-bot.wtg-dev.lan/webhook/agones`
+- `https://agis-bot.development.wtgg.org/webhook/github`
+- `https://agis-bot.development.wtgg.org/webhook/agones`
 
 ## Troubleshooting
 
@@ -41194,7 +41194,7 @@ echo "vault kv put secret/development/agis-bot discord_token=<token> discord_cli
 set -euo pipefail
 
 # Usage:
-#   export VAULT_ADDR=https://vault.wtg-dev.lan
+#   export VAULT_ADDR=https://vault.development.wtgg.org
 #   export VAULT_SKIP_VERIFY=1   # if using self-signed
 #   export VAULT_TOKEN={{VAULT_TOKEN}}
 #   export DISCORD_BOT_TOKEN=...  # required
