@@ -254,11 +254,11 @@ Loaded via godotenv from `.env` (see `internal/config/config.go`). **Never commi
 
 **Setup Script**: `scripts/vault-add-development-secrets.sh` (reference only, use placeholders)
 
-**Port-Forward for Local Vault Access**:
+**Vault Access via Tailscale**:
 ```bash
-kubectl port-forward -n vault svc/vault 8200:8200
-export VAULT_ADDR="http://localhost:8200"
+export VAULT_ADDR="https://vault.tail5e286b.ts.net:8200"
 export VAULT_TOKEN="<token>"
+vault kv get secret/dev/agis-bot
 ```
 
 ### ExternalSecrets Operator
