@@ -1,3 +1,12 @@
+> ⚠️ **NOTICE**: This document has been consolidated into the Master Documentation.
+> 
+> **See**: [operations/docs/manuals/](https://github.com/wethegamers/operations/tree/main/docs/manuals)
+>
+> This file is kept for reference but may be outdated. The master manuals are the authoritative source.
+
+---
+
+
 # AGIS Bot - Operations & Maintenance Manual
 
 **Version:** 1.7.0  
