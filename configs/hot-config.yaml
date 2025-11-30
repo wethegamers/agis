@@ -1,0 +1,560 @@
+# Hot-reloadable configuration for agis-bot
+# This file is mounted from a Kubernetes ConfigMap and watched for changes.
+# Changes take effect without restarting the bot.
+#
+# Version: 1.0.0
+# Environment: staging
+
+# =============================================================================
+# GAME DEFINITIONS
+# =============================================================================
+# Define game server types, their resource requirements, and pricing.
+# Add new games or modify existing ones without rebuilding the bot.
+
+games:
+  minecraft:
+    name: "Minecraft"
+    enabled: true
+    description: "Java Edition survival/creative server"
+    image: "itzg/minecraft-server"
+    image_tag: "latest"
+    tier: "solo"
+    base_cost_per_hour: 30
+    default_slots: 20
+    max_slots: 100
+    warm_pool_size: 2
+    grace_period_minutes: 120
+    requires_guild: false
+    agones_fleet_name: "minecraft-fleet"
+    resources:
+      requests_cpu: "500m"
+      requests_memory: "1Gi"
+      limits_cpu: "2000m"
+      limits_memory: "4Gi"
+    ports:
+      - name: game
+        port: 25565
+        protocol: TCP
+      - name: rcon
+        port: 25575
+        protocol: TCP
+    environment:
+      EULA: "TRUE"
+      TYPE: "VANILLA"
+      MEMORY: "2G"
+      ENABLE_RCON: "true"
+
+  terraria:
+    name: "Terraria"
+    enabled: true
+    description: "2D sandbox adventure"
+    image: "ryshe/terraria"
+    image_tag: "latest"
+    tier: "solo"
+    base_cost_per_hour: 35
+    default_slots: 16
+    max_slots: 32
+    warm_pool_size: 1
+    grace_period_minutes: 120
+    requires_guild: false
+    resources:
+      requests_cpu: "250m"
+      requests_memory: "512Mi"
+      limits_cpu: "1000m"
+      limits_memory: "1Gi"
+    ports:
+      - name: game
+        port: 7777
+        protocol: TCP
+
+  valheim:
+    name: "Valheim"
+    enabled: true
+    description: "Viking survival exploration"
+    image: "lloesche/valheim-server"
+    image_tag: "latest"
+    tier: "moderate"
+    base_cost_per_hour: 120
+    default_slots: 10
+    max_slots: 20
+    warm_pool_size: 1
+    grace_period_minutes: 120
+    requires_guild: false
+    resources:
+      requests_cpu: "1000m"
+      requests_memory: "4Gi"
+      limits_cpu: "2000m"
+      limits_memory: "8Gi"
+    ports:
+      - name: game
+        port: 2456
+        protocol: UDP
+      - name: query
+        port: 2457
+        protocol: UDP
+
+  rust:
+    name: "Rust"
+    enabled: true
+    description: "Hardcore survival PvP"
+    image: "didstopia/rust-server"
+    image_tag: "latest"
+    tier: "premium"
+    base_cost_per_hour: 220
+    default_slots: 50
+    max_slots: 200
+    warm_pool_size: 0
+    grace_period_minutes: 120
+    requires_guild: false
+    resources:
+      requests_cpu: "2000m"
+      requests_memory: "8Gi"
+      limits_cpu: "4000m"
+      limits_memory: "16Gi"
+    ports:
+      - name: game
+        port: 28015
+        protocol: UDP
+      - name: rcon
+        port: 28016
+        protocol: TCP
+    environment:
+      RUST_SERVER_STARTUP_ARGUMENTS: "-batchmode -load"
+      RUST_SERVER_WORLDSIZE: "3500"
+      RUST_SERVER_MAXPLAYERS: "50"
+
+  ark:
+    name: "ARK: Survival Evolved"
+    enabled: true
+    description: "Dinosaur survival (resource intensive)"
+    image: "hermsi/ark-server"
+    image_tag: "latest"
+    tier: "titan"
+    base_cost_per_hour: 240
+    default_slots: 70
+    max_slots: 100
+    warm_pool_size: 0
+    grace_period_minutes: 180
+    requires_guild: true  # Too expensive for solo
+    resources:
+      requests_cpu: "2000m"
+      requests_memory: "10Gi"
+      limits_cpu: "4000m"
+      limits_memory: "20Gi"
+    ports:
+      - name: game
+        port: 7777
+        protocol: UDP
+      - name: query
+        port: 27015
+        protocol: UDP
+      - name: rcon
+        port: 27020
+        protocol: TCP
+
+  cs2:
+    name: "Counter-Strike 2"
+    enabled: true
+    description: "Competitive FPS"
+    image: "joedwards32/cs2"
+    image_tag: "latest"
+    tier: "moderate"
+    base_cost_per_hour: 120
+    default_slots: 10
+    max_slots: 32
+    warm_pool_size: 1
+    grace_period_minutes: 60
+    requires_guild: false
+    resources:
+      requests_cpu: "1000m"
+      requests_memory: "2Gi"
+      limits_cpu: "2000m"
+      limits_memory: "4Gi"
+    ports:
+      - name: game
+        port: 27015
+        protocol: UDP
+      - name: gotv
+        port: 27020
+        protocol: UDP
+
+  satisfactory:
+    name: "Satisfactory"
+    enabled: true
+    description: "Factory building (resource intensive)"
+    image: "wolveix/satisfactory-server"
+    image_tag: "latest"
+    tier: "titan"
+    base_cost_per_hour: 240
+    default_slots: 4
+    max_slots: 8
+    warm_pool_size: 0
+    grace_period_minutes: 180
+    requires_guild: true
+    resources:
+      requests_cpu: "2000m"
+      requests_memory: "12Gi"
+      limits_cpu: "4000m"
+      limits_memory: "24Gi"
+    ports:
+      - name: game
+        port: 7777
+        protocol: UDP
+      - name: query
+        port: 15777
+        protocol: UDP
+      - name: beacon
+        port: 15000
+        protocol: UDP
+
+  factorio:
+    name: "Factorio"
+    enabled: true
+    description: "Factory automation"
+    image: "factoriotools/factorio"
+    image_tag: "latest"
+    tier: "moderate"
+    base_cost_per_hour: 100
+    default_slots: 20
+    max_slots: 100
+    warm_pool_size: 1
+    grace_period_minutes: 120
+    requires_guild: false
+    resources:
+      requests_cpu: "500m"
+      requests_memory: "1Gi"
+      limits_cpu: "2000m"
+      limits_memory: "4Gi"
+    ports:
+      - name: game
+        port: 34197
+        protocol: UDP
+
+  palworld:
+    name: "Palworld"
+    enabled: true
+    description: "Creature collection survival"
+    image: "thijsvanloef/palworld-server-docker"
+    image_tag: "latest"
+    tier: "premium"
+    base_cost_per_hour: 180
+    default_slots: 32
+    max_slots: 32
+    warm_pool_size: 0
+    grace_period_minutes: 120
+    requires_guild: false
+    resources:
+      requests_cpu: "2000m"
+      requests_memory: "8Gi"
+      limits_cpu: "4000m"
+      limits_memory: "16Gi"
+    ports:
+      - name: game
+        port: 8211
+        protocol: UDP
+
+  garrysmod:
+    name: "Garry's Mod"
+    enabled: true
+    description: "Physics sandbox"
+    image: "ich777/gmod-server"
+    image_tag: "latest"
+    tier: "moderate"
+    base_cost_per_hour: 95
+    default_slots: 24
+    max_slots: 64
+    warm_pool_size: 1
+    grace_period_minutes: 120
+    requires_guild: false
+    resources:
+      requests_cpu: "500m"
+      requests_memory: "2Gi"
+      limits_cpu: "2000m"
+      limits_memory: "4Gi"
+    ports:
+      - name: game
+        port: 27015
+        protocol: UDP
+
+  projectzomboid:
+    name: "Project Zomboid"
+    enabled: true
+    description: "Zombie survival RPG"
+    image: "renegademaster/zomboid-dedicated-server"
+    image_tag: "latest"
+    tier: "moderate"
+    base_cost_per_hour: 135
+    default_slots: 32
+    max_slots: 64
+    warm_pool_size: 0
+    grace_period_minutes: 120
+    requires_guild: false
+    resources:
+      requests_cpu: "1000m"
+      requests_memory: "4Gi"
+      limits_cpu: "2000m"
+      limits_memory: "8Gi"
+    ports:
+      - name: game
+        port: 16261
+        protocol: UDP
+      - name: direct
+        port: 16262
+        protocol: UDP
+
+  sevendaystodie:
+    name: "7 Days to Die"
+    enabled: true
+    description: "Zombie survival crafting"
+    image: "vinanrra/7dtd-server"
+    image_tag: "latest"
+    tier: "moderate"
+    base_cost_per_hour: 130
+    default_slots: 16
+    max_slots: 32
+    warm_pool_size: 0
+    grace_period_minutes: 120
+    requires_guild: false
+    resources:
+      requests_cpu: "1000m"
+      requests_memory: "4Gi"
+      limits_cpu: "2000m"
+      limits_memory: "8Gi"
+    ports:
+      - name: game
+        port: 26900
+        protocol: UDP
+      - name: telnet
+        port: 8081
+        protocol: TCP
+
+  dontstarvetogether:
+    name: "Don't Starve Together"
+    enabled: true
+    description: "Survival co-op"
+    image: "jamesits/dst-server"
+    image_tag: "latest"
+    tier: "solo"
+    base_cost_per_hour: 60
+    default_slots: 6
+    max_slots: 16
+    warm_pool_size: 1
+    grace_period_minutes: 120
+    requires_guild: false
+    resources:
+      requests_cpu: "250m"
+      requests_memory: "512Mi"
+      limits_cpu: "1000m"
+      limits_memory: "2Gi"
+    ports:
+      - name: game
+        port: 10999
+        protocol: UDP
+      - name: master
+        port: 10998
+        protocol: UDP
+
+# =============================================================================
+# PRICING CONFIGURATION
+# =============================================================================
+# Dynamic pricing rules that affect all game costs.
+# Modify to run promotions or adjust for infrastructure costs.
+
+pricing:
+  # Multiplier applied to all base prices (1.0 = no change)
+  base_multiplier: 1.0
+  
+  # Discount for premium subscribers (0.1 = 10% off)
+  premium_discount: 0.0
+  
+  # Discount for guild-owned servers (0.1 = 10% off)
+  guild_discount: 0.05
+  
+  # Peak hour pricing (optional)
+  peak_hours: []
+  # Example:
+  # - name: "Weekend Peak"
+  #   start_hour: 18
+  #   end_hour: 23
+  #   multiplier: 1.1
+  #   days: [5, 6]  # Friday, Saturday
+  
+  # Active promotions
+  promotions: []
+  # Example:
+  # - name: "Holiday Sale"
+  #   games: ["minecraft", "terraria"]  # Empty = all games
+  #   discount: 0.25  # 25% off
+  #   start_date: "2025-12-20T00:00:00Z"
+  #   end_date: "2025-12-31T23:59:59Z"
+  #   code: "HOLIDAY25"
+
+# =============================================================================
+# CUSTOM COMMANDS
+# =============================================================================
+# Define simple commands without code changes.
+# Supports: text responses, embeds, and Tengo scripts.
+
+commands:
+  # Example: Simple text response
+  rules:
+    name: "rules"
+    enabled: true
+    description: "Show server rules"
+    type: "embed"
+    permission: "user"
+    cooldown: 5
+    aliases: ["serverrules", "info"]
+    response:
+      embed:
+        title: "📜 WeTheGamers Rules"
+        description: "Welcome to WTG! Please follow these guidelines:"
+        color: 5814783  # 0x58B9BF
+        fields:
+          - name: "1️⃣ Be Respectful"
+            value: "Treat everyone with respect. No harassment, hate speech, or discrimination."
+            inline: false
+          - name: "2️⃣ No Cheating"
+            value: "Don't use exploits, hacks, or cheats on any game server."
+            inline: false
+          - name: "3️⃣ Keep It Safe"
+            value: "No NSFW content, illegal activities, or doxxing."
+            inline: false
+          - name: "4️⃣ Fair Play"
+            value: "Don't abuse the economy system or exploit bugs for unfair advantage."
+            inline: false
+        footer: "Violations may result in warnings, credit penalties, or bans."
+
+  # Example: Simple text response
+  discord:
+    name: "discord"
+    enabled: true
+    description: "Get Discord invite link"
+    type: "text"
+    permission: "user"
+    cooldown: 10
+    aliases: ["invite", "join"]
+    response:
+      text: "🎮 **Join WeTheGamers!**\n\n👉 https://discord.gg/wethegamers\n\nBring your friends and earn bonus credits!"
+
+  # Example: Website links
+  links:
+    name: "links"
+    enabled: true
+    description: "Show useful links"
+    type: "embed"
+    permission: "user"
+    cooldown: 10
+    aliases: ["website", "urls"]
+    response:
+      embed:
+        title: "🔗 Useful Links"
+        color: 3447003  # Blue
+        fields:
+          - name: "🌐 Website"
+            value: "[wethegamers.org](https://wethegamers.org)"
+            inline: true
+          - name: "📊 Dashboard"
+            value: "[dashboard](https://wethegamers.org/dashboard)"
+            inline: true
+          - name: "🛒 Shop"
+            value: "[shop](https://wethegamers.org/shop)"
+            inline: true
+          - name: "📚 Docs"
+            value: "[documentation](https://docs.wethegamers.org)"
+            inline: true
+          - name: "💬 Discord"
+            value: "[discord.gg/wethegamers](https://discord.gg/wethegamers)"
+            inline: true
+          - name: "🐛 Bug Reports"
+            value: "[GitHub Issues](https://github.com/wethegamers/agis-bot/issues)"
+            inline: true
+
+  # Example: Maintenance mode notice (toggle enabled to activate)
+  maintenance:
+    name: "maintenance"
+    enabled: false  # Enable during maintenance windows
+    description: "Show maintenance notice"
+    type: "embed"
+    permission: "user"
+    cooldown: 30
+    response:
+      embed:
+        title: "🔧 Scheduled Maintenance"
+        description: "WTG services are currently under maintenance."
+        color: 16776960  # Yellow
+        fields:
+          - name: "⏰ Expected Duration"
+            value: "2 hours"
+            inline: true
+          - name: "📅 Started"
+            value: "Check #announcements"
+            inline: true
+          - name: "📢 Updates"
+            value: "Follow #server-status for live updates"
+            inline: false
+        footer: "We apologize for any inconvenience."
+
+# =============================================================================
+# FEATURE FLAGS
+# =============================================================================
+# Toggle features on/off without code changes.
+
+features:
+  # Economy features
+  daily_bonus: true
+  work_command: true
+  ad_rewards: true
+  gift_credits: true
+  credit_transfer: true
+  
+  # Server features
+  server_creation: true
+  server_backups: true
+  server_scheduling: true
+  public_lobby: true
+  
+  # Premium features
+  stripe_payments: true
+  subscriptions: true
+  
+  # Guild features
+  guild_system: true
+  guild_treasury: true
+  
+  # Admin features
+  cluster_commands: true
+  
+  # Debug/Dev
+  debug_mode: false
+  verbose_logging: false
+
+# =============================================================================
+# RATE LIMITS
+# =============================================================================
+# Prevent abuse and ensure fair resource usage.
+
+rate_limits:
+  commands_per_minute: 30
+  server_creations_per_hour: 5
+  gifts_per_day: 10
+  max_active_servers: 3
+  premium_max_active_servers: 10
+
+# =============================================================================
+# CUSTOMIZABLE MESSAGES
+# =============================================================================
+# Customize bot responses without code changes.
+# Supports variables: {user}, {amount}, {server}, {game}, {time}
+
+messages:
+  welcome: "👋 Welcome to WeTheGamers, {user}! Use `@AGIS help` to get started."
+  insufficient_credits: "❌ You need **{amount} GC** but only have **{balance} GC**. Use `@AGIS credits earn` for options!"
+  server_created: "🎮 **{server}** is ready!\n\n**Game:** {game}\n**Address:** `{address}`\n\nHappy gaming!"
+  server_stopped: "⏸️ **{server}** has been stopped. Billing paused. Use `@AGIS start {server}` to resume."
+  server_deleted: "🗑️ **{server}** has been permanently deleted."
+  daily_collected: "💰 You collected **{amount} GC** from your daily bonus! Come back in 24 hours."
+  work_completed: "💼 Work complete! You earned **{amount} GC**. Next work available in {time}."
+  cooldown_active: "⏳ Command on cooldown. Try again in **{time}**."
+  permission_denied: "🚫 You don't have permission to use this command. Required: **{permission}**"
+  maintenance_mode: "🔧 This feature is temporarily disabled for maintenance. Check #announcements for updates."
