@@ -1,8 +1,22 @@
 # AGIS Bot - GitHub Copilot Instructions
 
+**Version**: 2.0.0  
+**Last Updated**: 2025-11-30  
+**Repository**: wethegamers/agis-bot
+
+> **Master Instructions**: See `/home/seb/wtg/.github/copilot-instructions.md` for platform-wide standards, naming conventions, and architecture overview.
+
+> **AI Resources**:
+> - Go guidance: `/home/seb/wtg/ai/instructions/go.md`
+> - Code style: `/home/seb/wtg/ai/guidance/code-style/go.md`
+> - Error handling: `/home/seb/wtg/ai/guidance/error-handling.md`
+
+---
+
 ## Quick Reference Index
 
 **Jump to**: [Architecture](#architecture) | [Dev Workflows](#development-workflows) | [Config](#configuration--secrets-management) | [Critical Patterns](#critical-patterns) | [K8s Deploy](#kubernetes-deployment) | [A/B Testing](#ab-testing--experimentation) | [Ad Conversion](#ad-conversion-workflows) | [Command Examples](#command-implementation-examples) | [Database](#database-schema--migrations) | [Troubleshooting](#troubleshooting-runbooks)
+
 
 **Common Tasks**:
 - [Add new command](#command-implementation-examples) → Implement `Command` interface, register in `handler.go`
