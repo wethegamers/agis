@@ -14,6 +14,7 @@ import (
 	"agis-bot/internal/bot"
 	"agis-bot/internal/bot/commands"
 	"agis-bot/internal/config"
+	"agis-bot/internal/hotconfig"
 	"agis-bot/internal/http"
 	"agis-bot/internal/payment"
 	"agis-bot/internal/services"
@@ -144,6 +145,36 @@ var (
 func main() {
 	// Load configuration from .env file
 	cfg = config.Load()
+
+	// Initialize hot-reloadable configuration (v1.8.0+)
+	// This watches ConfigMap-mounted YAML files for changes
+	var hotCfg *hotconfig.Manager
+	hotConfigPath := os.Getenv("HOT_CONFIG_PATH")
+	if hotConfigPath == "" {
+		// Default path when running locally
+		hotConfigPath = "configs/hot-config.yaml"
+	}
+	if _, err := os.Stat(hotConfigPath); err == nil {
+		hotCfg, err = hotconfig.NewManager(hotConfigPath)
+		if err != nil {
+			log.Printf("⚠️ Failed to initialize hot config: %v", err)
+		} else {
+			if err := hotCfg.Start(); err != nil {
+				log.Printf("⚠️ Failed to start hot config watcher: %v", err)
+			} else {
+				log.Printf("✅ Hot-reloadable config loaded from %s", hotConfigPath)
+				// Log available games
+				games := hotCfg.GetEnabledGames()
+				log.Printf("   📋 %d games configured: ", len(games))
+				for name, game := range games {
+					log.Printf("      - %s (%s): %d GC/hour", name, game.Tier, game.BaseCostPerHour)
+				}
+			}
+			defer hotCfg.Stop()
+		}
+	} else {
+		log.Printf("⚠️ Hot config file not found at %s - using defaults", hotConfigPath)
+	}
 	
 	// Initialize error monitoring (Sentry)
 	sentryDSN := os.Getenv("SENTRY_DSN")
@@ -398,6 +429,11 @@ func main() {
 	// Initialize modular command handler
 	commandHandler = commands.NewCommandHandler(cfg, dbService, loggingService)
 	log.Println("✅ Modular command system initialized")
+
+	// Wire hot-reloadable config to command handler (v1.8.0+)
+	if hotCfg != nil {
+		commandHandler.SetHotConfig(hotCfg)
+	}
 
 	// Initialize scheduler service with metrics
 	var schedulerService *services.SchedulerService

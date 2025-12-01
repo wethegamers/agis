@@ -58,6 +58,7 @@ type CommandHandler struct {
 	notifications  *services.NotificationService
 	agones         *services.AgonesService
 	pricingService *services.PricingService // BLOCKER 1: Dynamic pricing
+	hotConfig      HotConfigProvider        // v1.8.0: Hot-reloadable config
 	scheduler interface { // Scheduler service interface
 		CreateSchedule(serverID int, discordID, action, cronExpr, timezone string) (*services.ServerSchedule, error)
 		ListSchedules(discordID string) ([]*services.ServerSchedule, error)
@@ -66,6 +67,13 @@ type CommandHandler struct {
 		DisableSchedule(scheduleID int, discordID string) error
 		GetServerSchedules(serverID int, discordID string) ([]*services.ServerSchedule, error)
 	}
+}
+
+// HotConfigProvider interface for hot-reloadable configuration
+// This interface is satisfied by *hotconfig.Manager
+type HotConfigProvider interface {
+	IsFeatureEnabled(feature string) bool
+	CalculatePrice(gameName string, isPremium, isGuild bool) int
 }
 
 func NewCommandHandler(cfg *config.Config, db *services.DatabaseService, logger *services.LoggingService) *CommandHandler {
@@ -365,6 +373,12 @@ func (h *CommandHandler) SetDiscordSession(session *discordgo.Session) {
 	if h.notifications != nil {
 		h.notifications.SetDiscordSession(session)
 	}
+}
+
+// SetHotConfig sets the hot-reloadable configuration provider (v1.8.0+)
+func (h *CommandHandler) SetHotConfig(hc HotConfigProvider) {
+	h.hotConfig = hc
+	log.Println("✅ Hot-reloadable config wired to command handler")
 }
 
 // SetScheduler sets the scheduler service instance
