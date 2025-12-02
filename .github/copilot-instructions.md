@@ -270,7 +270,7 @@ Loaded via godotenv from `.env` (see `internal/config/config.go`). **Never commi
 
 **Vault Access via Tailscale**:
 ```bash
-export VAULT_ADDR="https://vault.tail5e286b.ts.net"
+export VAULT_ADDR="https://vault-staging.ts.wtgg.org"
 export VAULT_TOKEN="<token>"
 vault kv get secret/dev/agis-bot
 ```
