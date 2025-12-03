@@ -2,6 +2,7 @@
 package middleware
 
 import (
+"context"
 "net/http"
 "strconv"
 "sync"
@@ -240,4 +241,155 @@ final = middlewares[i](final)
 }
 return final
 }
+}
+
+// APIVersion represents an API version.
+type APIVersion string
+
+const (
+	// APIVersionV1 is API version 1.
+	APIVersionV1 APIVersion = "v1"
+	// APIVersionV2 is API version 2.
+	APIVersionV2 APIVersion = "v2"
+
+	// APIVersionHeader is the header for specifying API version.
+	APIVersionHeader = "X-API-Version"
+	// APIVersionContextKey is the context key for storing API version.
+	APIVersionContextKey = "api_version"
+)
+
+// APIVersioning handles API version detection and routing.
+type APIVersioning struct {
+	defaultVersion APIVersion
+	supported      map[APIVersion]bool
+	deprecated     map[APIVersion]string // version -> deprecation message
+}
+
+// NewAPIVersioning creates a new API versioning middleware.
+func NewAPIVersioning(defaultVersion APIVersion, supported []APIVersion) *APIVersioning {
+	av := &APIVersioning{
+		defaultVersion: defaultVersion,
+		supported:      make(map[APIVersion]bool),
+		deprecated:     make(map[APIVersion]string),
+	}
+	for _, v := range supported {
+		av.supported[v] = true
+	}
+	return av
+}
+
+// Deprecate marks a version as deprecated with a message.
+func (av *APIVersioning) Deprecate(version APIVersion, message string) {
+	av.deprecated[version] = message
+}
+
+// Handler returns middleware that extracts and validates API version.
+func (av *APIVersioning) Handler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check header first
+		version := APIVersion(r.Header.Get(APIVersionHeader))
+
+		// Fall back to URL path extraction (e.g., /api/v1/...)
+		if version == "" {
+			version = av.extractFromPath(r.URL.Path)
+		}
+
+		// Use default if not specified
+		if version == "" {
+			version = av.defaultVersion
+		}
+
+		// Validate version
+		if !av.supported[version] {
+			http.Error(w, "unsupported API version: "+string(version), http.StatusBadRequest)
+			return
+		}
+
+		// Add deprecation warning if applicable
+		if msg, ok := av.deprecated[version]; ok {
+			w.Header().Set("X-API-Deprecated", "true")
+			w.Header().Set("X-API-Deprecation-Message", msg)
+		}
+
+		// Set version in response header
+		w.Header().Set(APIVersionHeader, string(version))
+
+		// Store in context
+		ctx := r.Context()
+		ctx = setAPIVersion(ctx, version)
+		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// extractFromPath extracts API version from URL path.
+// Supports patterns like /api/v1/... or /v1/...
+func (av *APIVersioning) extractFromPath(path string) APIVersion {
+	// Simple extraction - look for v1, v2, etc.
+	if len(path) < 3 {
+		return ""
+	}
+
+	// Check for /api/v1/ or /v1/ patterns
+	patterns := []string{"/api/v1/", "/api/v2/", "/v1/", "/v2/"}
+	versions := []APIVersion{APIVersionV1, APIVersionV2, APIVersionV1, APIVersionV2}
+
+	for i, pattern := range patterns {
+		if len(path) >= len(pattern) && path[:len(pattern)] == pattern {
+			return versions[i]
+		}
+	}
+
+	return ""
+}
+
+type apiVersionContextKey struct{}
+
+func setAPIVersion(ctx context.Context, version APIVersion) context.Context {
+	return context.WithValue(ctx, apiVersionContextKey{}, version)
+}
+
+// GetAPIVersion retrieves the API version from context.
+func GetAPIVersion(ctx context.Context) APIVersion {
+	if v, ok := ctx.Value(apiVersionContextKey{}).(APIVersion); ok {
+		return v
+	}
+	return ""
+}
+
+// Timeout adds a timeout to requests.
+func Timeout(d time.Duration) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx, cancel := context.WithTimeout(r.Context(), d)
+			defer cancel()
+
+			done := make(chan struct{})
+			go func() {
+				next.ServeHTTP(w, r.WithContext(ctx))
+				close(done)
+			}()
+
+			select {
+			case <-done:
+				// Request completed normally
+			case <-ctx.Done():
+				if ctx.Err() == context.DeadlineExceeded {
+					http.Error(w, "request timeout", http.StatusGatewayTimeout)
+				}
+			}
+		})
+	}
+}
+
+// SecurityHeaders adds security-related headers.
+func SecurityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		next.ServeHTTP(w, r)
+	})
 }

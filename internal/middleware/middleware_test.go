@@ -245,3 +245,167 @@ t.Errorf("expected %s, got %s", tt.expected, result)
 })
 }
 }
+
+func TestAPIVersioning(t *testing.T) {
+	av := NewAPIVersioning(APIVersionV1, []APIVersion{APIVersionV1, APIVersionV2})
+
+	handler := av.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		version := GetAPIVersion(r.Context())
+		w.Write([]byte(string(version)))
+	}))
+
+	t.Run("default version", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", rec.Code)
+		}
+		if rec.Body.String() != "v1" {
+			t.Errorf("expected v1, got %s", rec.Body.String())
+		}
+		if rec.Header().Get(APIVersionHeader) != "v1" {
+			t.Errorf("expected X-API-Version header v1")
+		}
+	})
+
+	t.Run("version from header", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set(APIVersionHeader, "v2")
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", rec.Code)
+		}
+		if rec.Body.String() != "v2" {
+			t.Errorf("expected v2, got %s", rec.Body.String())
+		}
+	})
+
+	t.Run("version from URL path /api/v1/", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", rec.Code)
+		}
+		if rec.Body.String() != "v1" {
+			t.Errorf("expected v1, got %s", rec.Body.String())
+		}
+	})
+
+	t.Run("version from URL path /api/v2/", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v2/users", nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", rec.Code)
+		}
+		if rec.Body.String() != "v2" {
+			t.Errorf("expected v2, got %s", rec.Body.String())
+		}
+	})
+
+	t.Run("unsupported version", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set(APIVersionHeader, "v3")
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected status 400, got %d", rec.Code)
+		}
+	})
+}
+
+func TestAPIVersioningDeprecation(t *testing.T) {
+	av := NewAPIVersioning(APIVersionV2, []APIVersion{APIVersionV1, APIVersionV2})
+	av.Deprecate(APIVersionV1, "v1 will be removed in 2025")
+
+	handler := av.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	t.Run("deprecated version", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set(APIVersionHeader, "v1")
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", rec.Code)
+		}
+		if rec.Header().Get("X-API-Deprecated") != "true" {
+			t.Error("expected X-API-Deprecated header")
+		}
+		if rec.Header().Get("X-API-Deprecation-Message") == "" {
+			t.Error("expected deprecation message header")
+		}
+	})
+
+	t.Run("non-deprecated version", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set(APIVersionHeader, "v2")
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Header().Get("X-API-Deprecated") != "" {
+			t.Error("did not expect deprecation header for v2")
+		}
+	})
+}
+
+func TestSecurityHeaders(t *testing.T) {
+	handler := SecurityHeaders(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	expectedHeaders := map[string]string{
+		"X-Content-Type-Options": "nosniff",
+		"X-Frame-Options":        "DENY",
+		"X-XSS-Protection":       "1; mode=block",
+		"Referrer-Policy":        "strict-origin-when-cross-origin",
+	}
+
+	for header, expected := range expectedHeaders {
+		if rec.Header().Get(header) != expected {
+			t.Errorf("header %s: expected %s, got %s", header, expected, rec.Header().Get(header))
+		}
+	}
+}
+
+func TestTimeout(t *testing.T) {
+	t.Run("request completes in time", func(t *testing.T) {
+		handler := Timeout(100 * time.Millisecond)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", rec.Code)
+		}
+	})
+
+	// Note: Timeout middleware is tricky to test with httptest due to goroutine behavior
+	// In production, use with actual HTTP server
+}

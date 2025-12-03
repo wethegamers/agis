@@ -20,6 +20,11 @@ import (
 	"github.com/wethegamers/agis-core/services"
 	"github.com/wethegamers/agis-core/version"
 
+	// Internal packages for best-practice implementations
+	"github.com/wethegamers/agis/internal/metrics"
+	"github.com/wethegamers/agis/internal/tracing"
+	internalVersion "github.com/wethegamers/agis/internal/version"
+
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
@@ -147,6 +152,36 @@ var (
 func main() {
 	// Load configuration from .env file
 	cfg = config.Load()
+
+	// Initialize OpenTelemetry tracing (v1.9.0+)
+	// Enable by setting OTEL_EXPORTER_OTLP_ENDPOINT
+	tracingCfg := tracing.DefaultConfig()
+	tracingCfg.ServiceName = "agis"
+	tracingCfg.Environment = os.Getenv("SENTRY_ENVIRONMENT")
+	if tracingCfg.Environment == "" {
+		tracingCfg.Environment = "development"
+	}
+	tracingCfg.Endpoint = os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	tracingCfg.Enabled = tracingCfg.Endpoint != ""
+
+	tracingProvider, err := tracing.Init(context.Background(), tracingCfg)
+	if err != nil {
+		log.Printf("⚠️ Failed to initialize tracing: %v", err)
+	} else if tracingProvider != nil {
+		defer func() {
+			if err := tracingProvider.Shutdown(context.Background()); err != nil {
+				log.Printf("Error shutting down tracing: %v", err)
+			}
+		}()
+		if tracingCfg.Enabled {
+			log.Printf("✅ OpenTelemetry tracing initialized (endpoint: %s)", tracingCfg.Endpoint)
+		}
+	}
+
+	// Set build info metrics using internal/metrics and internal/version
+	versionInfo := internalVersion.Get()
+	metrics.SetBuildInfo(versionInfo.Version, versionInfo.GitCommit, versionInfo.BuildTime)
+	log.Printf("📦 Version: %s", versionInfo.String())
 
 	// Initialize hot-reloadable configuration (v1.8.0+)
 	// This watches ConfigMap-mounted YAML files for changes
