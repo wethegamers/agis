@@ -26,14 +26,24 @@ jobs:
     name: Lint & Format
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout agis
         uses: actions/checkout@v4
+        with:
+          path: agis
+
+      - name: Checkout agis-core
+        uses: actions/checkout@v4
+        with:
+          repository: wethegamers/agis-core
+          token: ${{ secrets.AGIS_CORE_PAT }}
+          path: agis-core
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
+          cache-dependency-path: agis/go.sum
 
       - name: Configure private module access
         run: |
@@ -41,6 +51,7 @@ jobs:
           echo "GOPRIVATE=github.com/wethegamers/*" >> $GITHUB_ENV
 
       - name: Download dependencies
+        working-directory: agis
         run: go mod download
 
       - name: Run golangci-lint
@@ -48,13 +59,16 @@ jobs:
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           args: --timeout=5m
+          working-directory: agis
 
       - name: Check go mod tidy
+        working-directory: agis
         run: |
           go mod tidy
           git diff --exit-code go.mod go.sum
 
       - name: Check formatting
+        working-directory: agis
         run: |
           gofmt -l .
           test -z "$(gofmt -l .)"
@@ -63,14 +77,24 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout agis
         uses: actions/checkout@v4
+        with:
+          path: agis
+
+      - name: Checkout agis-core
+        uses: actions/checkout@v4
+        with:
+          repository: wethegamers/agis-core
+          token: ${{ secrets.AGIS_CORE_PAT }}
+          path: agis-core
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
+          cache-dependency-path: agis/go.sum
 
       - name: Configure private module access
         run: |
@@ -78,14 +102,17 @@ jobs:
           echo "GOPRIVATE=github.com/wethegamers/*" >> $GITHUB_ENV
 
       - name: Download dependencies
+        working-directory: agis
         run: go mod download
 
       - name: Run tests with coverage
+        working-directory: agis
         run: |
           go test -race -coverprofile=coverage.out -covermode=atomic ./...
           go tool cover -func=coverage.out | tail -1
 
       - name: Check coverage threshold
+        working-directory: agis
         run: |
           COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | sed 's/%//')
           echo "Coverage: ${COVERAGE}%"
@@ -97,7 +124,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: ./coverage.out
+          files: agis/coverage.out
           flags: unittests
           fail_ci_if_error: false
         env:
@@ -107,14 +134,24 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout agis
         uses: actions/checkout@v4
+        with:
+          path: agis
+
+      - name: Checkout agis-core
+        uses: actions/checkout@v4
+        with:
+          repository: wethegamers/agis-core
+          token: ${{ secrets.AGIS_CORE_PAT }}
+          path: agis-core
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
+          cache-dependency-path: agis/go.sum
 
       - name: Configure private module access
         run: |
@@ -122,17 +159,19 @@ jobs:
           echo "GOPRIVATE=github.com/wethegamers/*" >> $GITHUB_ENV
 
       - name: Run Gosec Security Scanner
-        uses: securego/gosec@master
-        with:
-          args: '-no-fail -fmt sarif -out gosec-results.sarif ./...'
+        working-directory: agis
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -no-fail -fmt sarif -out gosec-results.sarif ./...
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: gosec-results.sarif
+          sarif_file: agis/gosec-results.sarif
         if: always()
 
       - name: Run govulncheck
+        working-directory: agis
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./... || echo "::warning::Vulnerabilities found"
