@@ -1,16 +1,29 @@
 # AGIS Bot
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-dark-flat.svg" alt="AGIS Logo" width="300">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-light-flat.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-dark-flat.svg">
+    <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-dark-flat.svg" alt="AGIS Logo" width="300">
+  </picture>
 </p>
 
+<!-- Dynamic Badges (live data) -->
+<p align="center">
+  <a href="https://github.com/wethegamers/agis-bot/actions/workflows/ci.yaml"><img src="https://img.shields.io/github/actions/workflow/status/wethegamers/agis-bot/ci.yaml?branch=main&style=flat-square&logo=github&label=CI" alt="CI Status"></a>
+  <a href="https://github.com/wethegamers/agis-bot/releases"><img src="https://img.shields.io/github/v/release/wethegamers/agis-bot?style=flat-square&logo=github&label=Release" alt="Release"></a>
+  <a href="https://goreportcard.com/report/github.com/wethegamers/agis-bot"><img src="https://goreportcard.com/badge/github.com/wethegamers/agis-bot?style=flat-square" alt="Go Report Card"></a>
+  <a href="https://github.com/wethegamers/agis-bot/blob/main/LICENSE"><img src="https://img.shields.io/github/license/wethegamers/agis-bot?style=flat-square" alt="License"></a>
+  <a href="http://makeapullrequest.com"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square" alt="PRs Welcome"></a>
+</p>
+
+<!-- Technology Stack Badges -->
 <p align="center">
   <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-go.svg" alt="Go 1.23">
   <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-kubernetes.svg" alt="Kubernetes Native">
   <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-agones.svg" alt="Agones SDK">
   <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-discord.svg" alt="Discord Bot">
   <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-postgresql.svg" alt="PostgreSQL 16">
-  <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-license.svg" alt="MIT License">
 </p>
 
 Advanced Gaming Integration System (AGIS) Bot for Discord - A Kubernetes-native Discord bot with Agones GameServer management capabilities.
