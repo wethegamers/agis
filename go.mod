@@ -8,7 +8,7 @@ require (
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/lib/pq v1.10.9
 	github.com/prometheus/client_golang v1.17.0
-	github.com/wethegamers/agis-core v0.0.0
+	github.com/wethegamers/agis-core v0.1.0
 	k8s.io/client-go v0.28.4
 )
 
