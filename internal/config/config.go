@@ -43,15 +43,15 @@ type AppConfig struct {
 
 // DiscordConfig holds Discord bot configuration.
 type DiscordConfig struct {
-	Token                string
-	ApplicationID        string
-	PublicKey            string
-	AllowedGuilds        []string
-	CommandPrefix        string
-	ShardCount           int
-	DisableWebSocket     bool
-	WebSocketReconnect   bool
-	WebSocketMaxRetries  int
+	Token               string
+	ApplicationID       string
+	PublicKey           string
+	AllowedGuilds       []string
+	CommandPrefix       string
+	ShardCount          int
+	DisableWebSocket    bool
+	WebSocketReconnect  bool
+	WebSocketMaxRetries int
 }
 
 // HTTPConfig holds HTTP server configuration.
@@ -83,13 +83,13 @@ type DatabaseConfig struct {
 
 // FeatureConfig holds feature flags.
 type FeatureConfig struct {
-	EnablePremium        bool
-	EnableAnalytics      bool
-	EnableWebSocket      bool
-	EnableHealthChecks   bool
-	EnableMetrics        bool
-	EnableOpenSaaS       bool
-	EnableRateLimiting   bool
+	EnablePremium      bool
+	EnableAnalytics    bool
+	EnableWebSocket    bool
+	EnableHealthChecks bool
+	EnableMetrics      bool
+	EnableOpenSaaS     bool
+	EnableRateLimiting bool
 }
 
 // MetricsConfig holds metrics configuration.

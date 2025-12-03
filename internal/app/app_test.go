@@ -12,7 +12,7 @@ type mockService struct {
 	stopped bool
 }
 
-func (m *mockService) Name() string               { return m.name }
+func (m *mockService) Name() string                    { return m.name }
 func (m *mockService) Start(ctx context.Context) error { return nil }
 func (m *mockService) Stop(ctx context.Context) error  { m.stopped = true; return nil }
 
