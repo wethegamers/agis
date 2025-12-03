@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -124,12 +125,12 @@ func TestDiscordAttributes(t *testing.T) {
 func TestHTTPMiddleware(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	wrapped := HTTPMiddleware(handler)
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	wrapped.ServeHTTP(rec, req)
@@ -146,7 +147,7 @@ func TestHTTPMiddleware_Error(t *testing.T) {
 
 	wrapped := HTTPMiddleware(handler)
 
-	req := httptest.NewRequest(http.MethodGet, "/error", nil)
+	req := httptest.NewRequest(http.MethodGet, "/error", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	wrapped.ServeHTTP(rec, req)
@@ -193,7 +194,7 @@ func TestTimed_Error(t *testing.T) {
 		return expectedErr
 	})
 
-	if err != expectedErr {
+	if !errors.Is(err, expectedErr) {
 		t.Errorf("Expected error %v, got %v", expectedErr, err)
 	}
 }

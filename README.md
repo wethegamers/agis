@@ -1,12 +1,7 @@
 # AGIS Bot
 
 <p align="center">
-  <a href="#gh-dark-mode-only">
-    <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-dark-flat.svg" alt="AGIS Logo" width="300">
-  </a>
-  <a href="#gh-light-mode-only">
-    <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-light-flat.svg" alt="AGIS Logo" width="300">
-  </a>
+  <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-dark-flat.svg" alt="AGIS Logo" width="75%">
 </p>
 
 <!-- Dynamic Badges -->

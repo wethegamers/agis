@@ -42,8 +42,22 @@ test-coverage: test
 # Run linter
 lint:
 	@echo "Running golangci-lint..."
-	golangci-lint run ./...
+	@export PATH="$$HOME/go/bin:$$PATH" && golangci-lint run ./...
 	@echo "✅ Lint complete"
+
+# Install golangci-lint
+lint-install:
+	@echo "Installing golangci-lint v1.64.8..."
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+	@echo "✅ golangci-lint installed"
+
+# Setup git hooks for pre-push lint checks
+hooks:
+	@echo "Setting up git hooks..."
+	@mkdir -p .git/hooks
+	@cp scripts/pre-push .git/hooks/pre-push
+	@chmod +x .git/hooks/pre-push
+	@echo "✅ Git hooks installed"
 
 # Format code
 fmt:
@@ -129,8 +143,10 @@ help:
 	@echo "  test            - Run unit tests with race detector"
 	@echo "  test-coverage   - Run tests and generate HTML coverage report"
 	@echo "  lint            - Run golangci-lint"
+	@echo "  lint-install    - Install golangci-lint"
 	@echo "  fmt             - Format Go code"
 	@echo "  tidy            - Tidy and verify Go modules"
+	@echo "  hooks           - Install git pre-push hooks"
 	@echo ""
 	@echo "Docker (requires GITHUB_TOKEN for private modules):"
 	@echo "  docker-build       - Build Docker image (arm64 for prod)"

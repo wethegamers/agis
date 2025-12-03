@@ -16,7 +16,7 @@ func TestRequestID(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -42,7 +42,7 @@ func TestRequestIDExisting(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	req.Header.Set("X-Request-ID", existingID)
 	rec := httptest.NewRecorder()
 
@@ -58,7 +58,7 @@ func TestRecover(t *testing.T) {
 		panic("test panic")
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -77,7 +77,7 @@ func TestRateLimiter(t *testing.T) {
 	}))
 
 	for i := 0; i < 2; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, req)
 
@@ -86,7 +86,7 @@ func TestRateLimiter(t *testing.T) {
 		}
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -103,14 +103,14 @@ func TestRateLimiterRefill(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Errorf("first request: expected 200, got %d", rec.Code)
 	}
 
-	req = httptest.NewRequest(http.MethodGet, "/test", nil)
+	req = httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusTooManyRequests {
@@ -119,7 +119,7 @@ func TestRateLimiterRefill(t *testing.T) {
 
 	time.Sleep(150 * time.Millisecond)
 
-	req = httptest.NewRequest(http.MethodGet, "/test", nil)
+	req = httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -133,7 +133,7 @@ func TestCORS(t *testing.T) {
 	}))
 
 	t.Run("preflight request", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodOptions, "/test", nil)
+		req := httptest.NewRequest(http.MethodOptions, "/test", http.NoBody)
 		req.Header.Set("Origin", "https://example.com")
 		rec := httptest.NewRecorder()
 
@@ -148,7 +148,7 @@ func TestCORS(t *testing.T) {
 	})
 
 	t.Run("actual request", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 		req.Header.Set("Origin", "https://example.com")
 		rec := httptest.NewRecorder()
 
@@ -187,7 +187,7 @@ func TestChain(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -230,7 +230,7 @@ func TestIPKeyFunc(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 			for k, v := range tt.headers {
 				req.Header.Set(k, v)
 			}
@@ -251,11 +251,11 @@ func TestAPIVersioning(t *testing.T) {
 
 	handler := av.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		version := GetAPIVersion(r.Context())
-		w.Write([]byte(string(version)))
+		_, _ = w.Write([]byte(string(version)))
 	}))
 
 	t.Run("default version", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 		rec := httptest.NewRecorder()
 
 		handler.ServeHTTP(rec, req)
@@ -272,7 +272,7 @@ func TestAPIVersioning(t *testing.T) {
 	})
 
 	t.Run("version from header", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 		req.Header.Set(APIVersionHeader, "v2")
 		rec := httptest.NewRecorder()
 
@@ -287,7 +287,7 @@ func TestAPIVersioning(t *testing.T) {
 	})
 
 	t.Run("version from URL path /api/v1/", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/users", http.NoBody)
 		rec := httptest.NewRecorder()
 
 		handler.ServeHTTP(rec, req)
@@ -301,7 +301,7 @@ func TestAPIVersioning(t *testing.T) {
 	})
 
 	t.Run("version from URL path /api/v2/", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/v2/users", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v2/users", http.NoBody)
 		rec := httptest.NewRecorder()
 
 		handler.ServeHTTP(rec, req)
@@ -315,7 +315,7 @@ func TestAPIVersioning(t *testing.T) {
 	})
 
 	t.Run("unsupported version", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 		req.Header.Set(APIVersionHeader, "v3")
 		rec := httptest.NewRecorder()
 
@@ -336,7 +336,7 @@ func TestAPIVersioningDeprecation(t *testing.T) {
 	}))
 
 	t.Run("deprecated version", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 		req.Header.Set(APIVersionHeader, "v1")
 		rec := httptest.NewRecorder()
 
@@ -354,7 +354,7 @@ func TestAPIVersioningDeprecation(t *testing.T) {
 	})
 
 	t.Run("non-deprecated version", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 		req.Header.Set(APIVersionHeader, "v2")
 		rec := httptest.NewRecorder()
 
@@ -371,7 +371,7 @@ func TestSecurityHeaders(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -396,7 +396,7 @@ func TestTimeout(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		}))
 
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 		rec := httptest.NewRecorder()
 
 		handler.ServeHTTP(rec, req)

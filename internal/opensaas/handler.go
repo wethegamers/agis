@@ -143,13 +143,13 @@ type apiError struct {
 func (h *Handler) respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(apiResponse{Success: true, Data: data})
+	_ = json.NewEncoder(w).Encode(apiResponse{Success: true, Data: data})
 }
 
 func (h *Handler) respondError(w http.ResponseWriter, status int, code, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(apiResponse{
+	_ = json.NewEncoder(w).Encode(apiResponse{
 		Success: false,
 		Error:   &apiError{Code: code, Message: message},
 	})

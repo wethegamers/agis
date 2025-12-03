@@ -1,0 +1,39 @@
+#!/bin/bash
+# Pre-push hook to run linting before pushing
+# Prevents wasting CI minutes on code that will fail lint checks
+
+set -e
+
+echo "🔍 Running pre-push checks..."
+
+# Check if golangci-lint is installed
+if ! command -v golangci-lint &> /dev/null; then
+    # Check in common locations
+    if [ -x "$HOME/go/bin/golangci-lint" ]; then
+        export PATH="$HOME/go/bin:$PATH"
+    else
+        echo "⚠️  golangci-lint not found. Install with:"
+        echo "    go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8"
+        echo "Skipping lint check..."
+        exit 0
+    fi
+fi
+
+# Run linter
+echo "📝 Running golangci-lint..."
+if ! golangci-lint run ./...; then
+    echo ""
+    echo "❌ Lint check failed. Please fix the issues above before pushing."
+    echo "   Run 'make lint' to see all issues."
+    exit 1
+fi
+
+# Run tests
+echo "🧪 Running tests..."
+if ! go test ./... -count=1 -short; then
+    echo ""
+    echo "❌ Tests failed. Please fix the issues above before pushing."
+    exit 1
+fi
+
+echo "✅ All pre-push checks passed!"

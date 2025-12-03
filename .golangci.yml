@@ -101,6 +101,12 @@ issues:
     - path: \.pb\.go
       linters:
         - all
+    
+    # Prometheus metrics are auto-registered via promauto - keep even if "unused"
+    - path: main\.go
+      linters:
+        - unused
+      text: "var .* is unused"
 
   max-issues-per-linter: 50
   max-same-issues: 10

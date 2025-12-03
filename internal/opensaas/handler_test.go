@@ -45,26 +45,12 @@ func (m *mockUserService) LinkDiscordAccount(ctx context.Context, uid int, did s
 	return nil
 }
 
-func (m *mockUserService) GetUserCredits(ctx context.Context, uid int) (int, int, error) {
+func (m *mockUserService) GetUserCredits(ctx context.Context, uid int) (credits, wtg int, err error) {
 	return 100, 10, nil
 }
 
 func (m *mockUserService) UpdateUserTier(ctx context.Context, uid int, tier string, exp *time.Time) error {
 	return nil
-}
-
-type mockPaymentService struct{}
-
-func (m *mockPaymentService) CreateCheckoutSession(ctx context.Context, uid int, pid, surl, curl string) (string, error) {
-	return "https://test", nil
-}
-
-func (m *mockPaymentService) HandleWebhook(ctx context.Context, p []byte, s string) error {
-	return nil
-}
-
-func (m *mockPaymentService) GetPaymentHistory(ctx context.Context, uid, lim int) ([]Payment, error) {
-	return []Payment{}, nil
 }
 
 type mockServerService struct{}
@@ -97,7 +83,7 @@ func TestHandleHealth(t *testing.T) {
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/opensaas/v1/health", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/opensaas/v1/health", http.NoBody)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
@@ -119,7 +105,7 @@ func TestHandleListGames(t *testing.T) {
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/opensaas/v1/games", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/opensaas/v1/games", http.NoBody)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
@@ -133,7 +119,7 @@ func TestAuthMiddleware_NoHeader(t *testing.T) {
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/opensaas/v1/user/me", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/opensaas/v1/user/me", http.NoBody)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
@@ -147,7 +133,7 @@ func TestHandleGetCurrentUser(t *testing.T) {
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/opensaas/v1/user/me", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/opensaas/v1/user/me", http.NoBody)
 	req.Header.Set("Authorization", "Bearer 123456789")
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
@@ -162,7 +148,7 @@ func TestHandleGetCurrentUser_NotFound(t *testing.T) {
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/opensaas/v1/user/me", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/opensaas/v1/user/me", http.NoBody)
 	req.Header.Set("Authorization", "Bearer unknown_user")
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)

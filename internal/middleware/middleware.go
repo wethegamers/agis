@@ -377,6 +377,7 @@ func Timeout(d time.Duration) func(http.Handler) http.Handler {
 			case <-ctx.Done():
 				if ctx.Err() == context.DeadlineExceeded {
 					http.Error(w, "request timeout", http.StatusGatewayTimeout)
+					return
 				}
 			}
 		})

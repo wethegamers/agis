@@ -41,7 +41,7 @@ func TestInfoShortString(t *testing.T) {
 
 func TestHandler(t *testing.T) {
 	handler := Handler()
-	req := httptest.NewRequest(http.MethodGet, "/version", nil)
+	req := httptest.NewRequest(http.MethodGet, "/version", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -64,7 +64,7 @@ func TestHandler(t *testing.T) {
 
 func TestShortHandler(t *testing.T) {
 	handler := ShortHandler()
-	req := httptest.NewRequest(http.MethodGet, "/version/short", nil)
+	req := httptest.NewRequest(http.MethodGet, "/version/short", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -92,7 +92,7 @@ func TestGetRuntime(t *testing.T) {
 
 func TestRuntimeHandler(t *testing.T) {
 	handler := RuntimeHandler()
-	req := httptest.NewRequest(http.MethodGet, "/runtime", nil)
+	req := httptest.NewRequest(http.MethodGet, "/runtime", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -109,7 +109,7 @@ func TestRuntimeHandler(t *testing.T) {
 
 func TestFullInfoHandler(t *testing.T) {
 	handler := FullInfoHandler()
-	req := httptest.NewRequest(http.MethodGet, "/info", nil)
+	req := httptest.NewRequest(http.MethodGet, "/info", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)

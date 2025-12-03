@@ -65,8 +65,8 @@ type CheckResult struct {
 	Latency string `json:"latency,omitempty"`
 }
 
-// HealthResponse is the response for health endpoints.
-type HealthResponse struct {
+// Response is the response for health endpoints.
+type Response struct {
 	Status    Status        `json:"status"`
 	Timestamp string        `json:"timestamp"`
 	Version   string        `json:"version,omitempty"`
@@ -153,7 +153,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 func (h *Handler) handleLiveness(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(HealthResponse{
+	_ = json.NewEncoder(w).Encode(Response{
 		Status:    StatusHealthy,
 		Timestamp: time.Now().Format(time.RFC3339),
 		Version:   h.version,
@@ -167,7 +167,7 @@ func (h *Handler) handleReadiness(w http.ResponseWriter, r *http.Request) {
 
 	if !h.checker.IsReady() {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(HealthResponse{
+		_ = json.NewEncoder(w).Encode(Response{
 			Status:    StatusUnhealthy,
 			Timestamp: time.Now().Format(time.RFC3339),
 			Version:   h.version,
@@ -186,7 +186,7 @@ func (h *Handler) handleReadiness(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(httpStatus)
-	json.NewEncoder(w).Encode(HealthResponse{
+	_ = json.NewEncoder(w).Encode(Response{
 		Status:    status,
 		Timestamp: time.Now().Format(time.RFC3339),
 		Version:   h.version,
@@ -208,7 +208,7 @@ func (h *Handler) handleDetailed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(httpStatus)
-	json.NewEncoder(w).Encode(HealthResponse{
+	_ = json.NewEncoder(w).Encode(Response{
 		Status:    status,
 		Timestamp: time.Now().Format(time.RFC3339),
 		Version:   h.version,
