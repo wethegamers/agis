@@ -23,6 +23,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -34,36 +35,36 @@ var (
 	cfg            *config.Config
 )
 
-// Prometheus metrics
+// Prometheus metrics (auto-registered via promauto)
 var (
-	commandsExecuted = prometheus.NewCounterVec(
+	commandsExecuted = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "agis_commands_total",
 			Help: "Total number of Discord commands executed",
 		},
 		[]string{"command", "user_id"},
 	)
-	serversManaged = prometheus.NewGaugeVec(
+	serversManaged = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "agis_game_servers_total",
 			Help: "Number of game servers managed by Agis",
 		},
 		[]string{"game_type", "status"},
 	)
-	creditsTransactions = prometheus.NewCounterVec(
+	creditsTransactions = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "agis_credits_transactions_total",
 			Help: "Total number of credit transactions",
 		},
 		[]string{"transaction_type", "user_id"},
 	)
-	activeUsers = prometheus.NewGauge(
+	activeUsers = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "agis_active_users_total",
 			Help: "Number of active users in the system",
 		},
 	)
-	databaseOperations = prometheus.NewCounterVec(
+	databaseOperations = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "agis_database_operations_total",
 			Help: "Total number of database operations",
@@ -72,51 +73,51 @@ var (
 	)
 
 	// Ad conversion metrics
-	adConversionsTotal = prometheus.NewCounterVec(
+	adConversionsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "agis_ad_conversions_total",
 			Help: "Total number of ad conversions processed",
 		},
-		[]string{"provider", "type", "status"}, // provider=ayet, type=offerwall/surveywall/video, status=completed/fraud
+		[]string{"provider", "type", "status"},
 	)
-	adRewardsTotal = prometheus.NewCounterVec(
+	adRewardsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "agis_ad_rewards_total",
 			Help: "Total Game Credits rewarded from ad conversions",
 		},
 		[]string{"provider", "type"},
 	)
-	adFraudAttemptsTotal = prometheus.NewCounterVec(
+	adFraudAttemptsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "agis_ad_fraud_attempts_total",
 			Help: "Total number of detected fraud attempts",
 		},
-		[]string{"provider", "reason"}, // reason=excessive_velocity/ip_hopping/excessive_earnings
+		[]string{"provider", "reason"},
 	)
-	adCallbackLatency = prometheus.NewHistogramVec(
+	adCallbackLatency = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "agis_ad_callback_latency_seconds",
 			Help:    "Latency of ad callback processing in seconds",
-			Buckets: prometheus.DefBuckets, // 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10
+			Buckets: prometheus.DefBuckets,
 		},
 		[]string{"provider", "status"},
 	)
-	adConversionsByTier = prometheus.NewCounterVec(
+	adConversionsByTier = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "agis_ad_conversions_by_tier_total",
 			Help: "Ad conversions broken down by user tier",
 		},
-		[]string{"tier"}, // free/premium/premium_plus
+		[]string{"tier"},
 	)
 
 	// Scheduler metrics
-	schedulerActiveSchedules = prometheus.NewGauge(
+	schedulerActiveSchedules = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "agis_scheduler_active_schedules",
 			Help: "Number of active server schedules",
 		},
 	)
-	schedulerExecutionsTotal = prometheus.NewCounterVec(
+	schedulerExecutionsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "agis_scheduler_executions_total",
 			Help: "Total scheduler executions",
@@ -125,14 +126,14 @@ var (
 	)
 
 	// API metrics
-	apiRequestsTotal = prometheus.NewCounterVec(
+	apiRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "agis_api_requests_total",
 			Help: "Total REST API requests",
 		},
 		[]string{"method", "endpoint", "status"},
 	)
-	apiRequestDuration = prometheus.NewHistogramVec(
+	apiRequestDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "agis_api_request_duration_seconds",
 			Help:    "API request duration in seconds",
@@ -194,23 +195,7 @@ func main() {
 		}
 	}()
 
-	// Register Prometheus metrics
-	prometheus.MustRegister(commandsExecuted)
-	prometheus.MustRegister(serversManaged)
-	prometheus.MustRegister(creditsTransactions)
-	prometheus.MustRegister(activeUsers)
-	prometheus.MustRegister(databaseOperations)
-
-	// Register ad conversion metrics
-	prometheus.MustRegister(adConversionsTotal)
-	prometheus.MustRegister(adRewardsTotal)
-	prometheus.MustRegister(adFraudAttemptsTotal)
-	prometheus.MustRegister(adCallbackLatency)
-	prometheus.MustRegister(adConversionsByTier)
-	prometheus.MustRegister(schedulerActiveSchedules)
-	prometheus.MustRegister(schedulerExecutionsTotal)
-	prometheus.MustRegister(apiRequestsTotal)
-	prometheus.MustRegister(apiRequestDuration)
+	// Prometheus metrics are auto-registered via promauto
 
 	// Start HTTP server with metrics, health checks, and info endpoints
 	httpServer := http.NewServer()
