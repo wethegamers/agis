@@ -1,14 +1,25 @@
-.PHONY: build run test lint docker-build docker-run clean help
+.PHONY: build run test lint docker-build docker-run clean help verify-all
 
 # Binary name
 BINARY_NAME=agis-bot
-DOCKER_IMAGE=agis-bot
+DOCKER_IMAGE=ghcr.io/wethegamers/agis-bot
 DOCKER_TAG=dev
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+GIT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+# Build flags
+LDFLAGS=-ldflags "-X github.com/wethegamers/agis-core/version.Version=$(VERSION) \
+	-X github.com/wethegamers/agis-core/version.GitCommit=$(GIT_COMMIT) \
+	-X github.com/wethegamers/agis-core/version.BuildDate=$(BUILD_DATE)"
+
+# Ensure GOPRIVATE is set for private modules
+export GOPRIVATE=github.com/wethegamers/*
 
 # Build the application
 build:
-	@echo "Building $(BINARY_NAME)..."
-	go build -o bin/$(BINARY_NAME) .
+	@echo "Building $(BINARY_NAME) $(VERSION)..."
+	go build $(LDFLAGS) -o bin/$(BINARY_NAME) .
 	@echo "✅ Build complete: bin/$(BINARY_NAME)"
 
 # Run the application locally
@@ -48,16 +59,41 @@ tidy:
 	go mod verify
 	@echo "✅ Dependencies tidied"
 
-# Build Docker image
+# Build Docker image locally (requires GitHub token for private modules)
 docker-build:
 	@echo "Building Docker image $(DOCKER_IMAGE):$(DOCKER_TAG)..."
-	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+	@if [ -z "$$GITHUB_TOKEN" ]; then \
+		echo "❌ GITHUB_TOKEN required. Set it with: export GITHUB_TOKEN=ghp_xxx"; \
+		exit 1; \
+	fi
+	DOCKER_BUILDKIT=1 docker build \
+		--secret id=github_token,env=GITHUB_TOKEN \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg GIT_COMMIT=$(GIT_COMMIT) \
+		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		--platform linux/arm64 \
+		-t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+	@echo "✅ Docker image built: $(DOCKER_IMAGE):$(DOCKER_TAG)"
+
+# Build Docker image for local arch (faster for testing)
+docker-build-local:
+	@echo "Building Docker image for local architecture..."
+	@if [ -z "$$GITHUB_TOKEN" ]; then \
+		echo "❌ GITHUB_TOKEN required. Set it with: export GITHUB_TOKEN=ghp_xxx"; \
+		exit 1; \
+	fi
+	DOCKER_BUILDKIT=1 docker build \
+		--secret id=github_token,env=GITHUB_TOKEN \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg GIT_COMMIT=$(GIT_COMMIT) \
+		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		-t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 	@echo "✅ Docker image built: $(DOCKER_IMAGE):$(DOCKER_TAG)"
 
 # Run in Docker
 docker-run:
 	@echo "Running $(DOCKER_IMAGE):$(DOCKER_TAG) in Docker..."
-	docker run --rm --env-file .env -p 8080:8080 -p 8081:8081 $(DOCKER_IMAGE):$(DOCKER_TAG)
+	docker run --rm --env-file .env -p 9090:9090 $(DOCKER_IMAGE):$(DOCKER_TAG)
 
 # Clean build artifacts
 clean:
@@ -84,7 +120,10 @@ grafana-forward:
 
 # Show help
 help:
-	@echo "Available targets:"
+	@echo "AGIS Bot Development Commands"
+	@echo "=============================="
+	@echo ""
+	@echo "Local Development:"
 	@echo "  build           - Build the application binary"
 	@echo "  run             - Run the application locally"
 	@echo "  test            - Run unit tests with race detector"
@@ -92,10 +131,33 @@ help:
 	@echo "  lint            - Run golangci-lint"
 	@echo "  fmt             - Format Go code"
 	@echo "  tidy            - Tidy and verify Go modules"
-	@echo "  docker-build    - Build Docker image"
-	@echo "  docker-run      - Run application in Docker"
-	@echo "  clean           - Remove build artifacts"
+	@echo ""
+	@echo "Docker (requires GITHUB_TOKEN for private modules):"
+	@echo "  docker-build       - Build Docker image (arm64 for prod)"
+	@echo "  docker-build-local - Build Docker image for local arch (faster)"
+	@echo "  docker-run         - Run application in Docker"
+	@echo ""
+	@echo "Pre-CI Verification (run before pushing):"
+	@echo "  verify-all      - Run all checks locally (lint, test, build)"
+	@echo ""
+	@echo "Cluster Operations:"
 	@echo "  migrate         - Run database migration in cluster"
 	@echo "  db-forward      - Port-forward postgres-dev pod"
 	@echo "  grafana-forward - Port-forward Grafana service"
+	@echo ""
+	@echo "Utilities:"
+	@echo "  clean           - Remove build artifacts"
 	@echo "  help            - Show this help message"
+	@echo ""
+	@echo "Environment Variables:"
+	@echo "  GITHUB_TOKEN    - Required for docker-build (access to agis-core)"
+	@echo "  DOCKER_TAG      - Docker image tag (default: dev)"
+	@echo "  VERSION         - Version string (default: git describe)"
+
+# Run all verification steps locally (saves CI minutes)
+verify-all: tidy lint test build
+	@echo ""
+	@echo "============================================"
+	@echo "✅ All local verification passed!"
+	@echo "   Safe to push to trigger CI pipeline."
+	@echo "============================================"
