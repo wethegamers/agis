@@ -256,7 +256,7 @@ func main() {
 	token := cfg.Discord.Token
 	if token == "" {
 		log.Println("❌ DISCORD_TOKEN is required")
-		os.Exit(1)
+		os.Exit(1) //nolint:gocritic // Fatal startup error before main logic
 	}
 
 	// Create Discord session
