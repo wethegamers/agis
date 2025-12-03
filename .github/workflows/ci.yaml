@@ -50,9 +50,12 @@ jobs:
           git config --global url."https://${{ secrets.AGIS_CORE_PAT }}@github.com/".insteadOf "https://github.com/"
           echo "GOPRIVATE=github.com/wethegamers/*" >> $GITHUB_ENV
 
-      - name: Download dependencies
+      - name: Verify dependencies
         working-directory: agis
-        run: go mod download
+        run: |
+          # The replace directive in go.mod points to ../agis-core
+          # which is checked out as a sibling directory in CI
+          go list -m all
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
@@ -101,9 +104,11 @@ jobs:
           git config --global url."https://${{ secrets.AGIS_CORE_PAT }}@github.com/".insteadOf "https://github.com/"
           echo "GOPRIVATE=github.com/wethegamers/*" >> $GITHUB_ENV
 
-      - name: Download dependencies
+      - name: Verify dependencies
         working-directory: agis
-        run: go mod download
+        run: |
+          # The replace directive in go.mod points to ../agis-core
+          go list -m all
 
       - name: Run tests with coverage
         working-directory: agis
@@ -157,6 +162,10 @@ jobs:
         run: |
           git config --global url."https://${{ secrets.AGIS_CORE_PAT }}@github.com/".insteadOf "https://github.com/"
           echo "GOPRIVATE=github.com/wethegamers/*" >> $GITHUB_ENV
+
+      - name: Verify dependencies
+        working-directory: agis
+        run: go list -m all
 
       - name: Run Gosec Security Scanner
         working-directory: agis
