@@ -17,11 +17,11 @@ ENV GOPRIVATE=github.com/wethegamers/*
 COPY . .
 
 # Remove replace directive for CI builds (use git fetch instead of local path)
-RUN sed -i '/^replace/d' go.mod
-
-# Download dependencies - uses git credentials from build secrets
+# Then run go mod tidy to update go.sum with agis-core checksums
 RUN --mount=type=secret,id=github_token \
     git config --global url."https://$(cat /run/secrets/github_token)@github.com/".insteadOf "https://github.com/" && \
+    sed -i '/^replace/d' go.mod && \
+    go mod tidy && \
     go mod download
 
 # Build with version information injected
