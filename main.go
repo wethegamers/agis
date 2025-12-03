@@ -256,14 +256,14 @@ func main() {
 	token := cfg.Discord.Token
 	if token == "" {
 		log.Println("❌ DISCORD_TOKEN is required")
-		os.Exit(1) //nolint:gocritic // Fatal startup error, defer cleanup not critical
+		os.Exit(1)
 	}
 
 	// Create Discord session
 	session, err := discordgo.New("Bot " + token)
 	if err != nil {
 		log.Printf("Failed to create Discord session: %v", err)
-		os.Exit(1) //nolint:gocritic // Fatal startup error, defer cleanup not critical
+		os.Exit(1)
 	}
 
 	// Enable state tracking for member updates (required for BeforeUpdate)
@@ -275,7 +275,7 @@ func main() {
 	dbService, err := services.NewDatabaseService(cfg)
 	if err != nil {
 		log.Printf("Failed to initialize database service: %v", err)
-		os.Exit(1) //nolint:gocritic // Fatal startup error, defer cleanup not critical
+		os.Exit(1)
 	}
 	log.Println("✅ Database service initialized")
 
