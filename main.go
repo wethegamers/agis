@@ -142,6 +142,7 @@ var (
 	)
 )
 
+//nolint:gocyclo // Main function orchestrates initialization; refactoring planned for v2.0
 func main() {
 	// Load configuration from .env file
 	cfg = config.Load()
@@ -175,7 +176,7 @@ func main() {
 	} else {
 		log.Printf("⚠️ Hot config file not found at %s - using defaults", hotConfigPath)
 	}
-	
+
 	// Initialize error monitoring (Sentry)
 	sentryDSN := os.Getenv("SENTRY_DSN")
 	sentryEnv := os.Getenv("SENTRY_ENVIRONMENT")
@@ -198,7 +199,7 @@ func main() {
 	prometheus.MustRegister(creditsTransactions)
 	prometheus.MustRegister(activeUsers)
 	prometheus.MustRegister(databaseOperations)
-	
+
 	// Register ad conversion metrics
 	prometheus.MustRegister(adConversionsTotal)
 	prometheus.MustRegister(adRewardsTotal)
@@ -253,15 +254,17 @@ func main() {
 	// Get Discord token
 	token := cfg.Discord.Token
 	if token == "" {
-		log.Fatal("❌ DISCORD_TOKEN is required")
+		log.Println("❌ DISCORD_TOKEN is required")
+		os.Exit(1)
 	}
 
 	// Create Discord session
 	session, err := discordgo.New("Bot " + token)
 	if err != nil {
-		log.Fatalf("Failed to create Discord session: %v", err)
+		log.Printf("Failed to create Discord session: %v", err)
+		os.Exit(1)
 	}
-	
+
 	// Enable state tracking for member updates (required for BeforeUpdate)
 	session.StateEnabled = true
 	session.State.TrackMembers = true
@@ -270,10 +273,11 @@ func main() {
 	// Initialize database service
 	dbService, err := services.NewDatabaseService(cfg)
 	if err != nil {
-		log.Fatalf("Failed to initialize database service: %v", err)
+		log.Printf("Failed to initialize database service: %v", err)
+		os.Exit(1)
 	}
 	log.Println("✅ Database service initialized")
-	
+
 	// Ensure database indexes for performance
 	if dbService.DB() != nil {
 		if err := services.EnsureIndexes(context.Background(), dbService.DB()); err != nil {
@@ -303,7 +307,7 @@ func main() {
 	// Wire ayeT-Studios S2S callback handler
 	ayetHandler := http.NewAyetHandler(adConversionService)
 	http.SetAyetHandler(ayetHandler)
-	
+
 	// Initialize ad metrics collector
 	adMetrics := services.NewAdMetrics(
 		adConversionsTotal,
@@ -352,9 +356,9 @@ func main() {
 			// Begin database transaction
 			tx, err := dbService.DB().Begin()
 			if err != nil {
-				return fmt.Errorf("failed to start transaction: %v", err)
+				return fmt.Errorf("failed to start transaction: %w", err)
 			}
-			defer tx.Rollback()
+			defer tx.Rollback() //nolint:errcheck // Rollback on deferred path is best-effort
 
 			// Add WTG coins to user account
 			_, err = tx.Exec(`
@@ -365,7 +369,7 @@ func main() {
 			`, discordID, wtgCoins)
 
 			if err != nil {
-				return fmt.Errorf("failed to add WTG coins: %v", err)
+				return fmt.Errorf("failed to add WTG coins: %w", err)
 			}
 
 			// Log transaction for audit trail
@@ -378,12 +382,12 @@ func main() {
 			`, discordID, wtgCoins, fmt.Sprintf("Stripe payment $%.2f - Session %s", float64(amountPaid)/100, sessionID))
 
 			if err != nil {
-				return fmt.Errorf("failed to log transaction: %v", err)
+				return fmt.Errorf("failed to log transaction: %w", err)
 			}
 
 			// Commit transaction
 			if err := tx.Commit(); err != nil {
-				return fmt.Errorf("failed to commit transaction: %v", err)
+				return fmt.Errorf("failed to commit transaction: %w", err)
 			}
 
 			log.Printf("✅ Successfully credited %d WTG to user %s", wtgCoins, discordID)
@@ -392,7 +396,7 @@ func main() {
 			if session != nil {
 				channel, err := session.UserChannelCreate(discordID)
 				if err == nil {
-					session.ChannelMessageSend(channel.ID, fmt.Sprintf(
+					_, _ = session.ChannelMessageSend(channel.ID, fmt.Sprintf(
 						"💎 **Payment Successful!**\\n\\n"+
 							"You've received **%d WTG Coins**!\\n"+
 							"Amount paid: $%.2f\\n\\n"+
@@ -466,7 +470,7 @@ func main() {
 	} else {
 		log.Println("⚠️ REST API disabled - missing required services")
 	}
-	
+
 	// Register ad analytics command (requires AdConversionService)
 	adAnalyticsCmd := commands.NewAdAnalyticsCommand(adConversionService)
 	commandHandler.Register(adAnalyticsCmd)
@@ -489,14 +493,14 @@ func main() {
 		out := make([]http.DashboardServer, 0, len(servers))
 		for _, s := range servers {
 			ds := http.DashboardServer{
-				ID:        s.ID,
-				Name:      s.Name,
-				Game:      s.GameType,
-				Address:   s.Address,
-				Port:      s.Port,
-				Status:    s.Status,
-				Region:    "",
-				Players:   http.PlayersInfo{Current: 0, Max: 0},
+				ID:         s.ID,
+				Name:       s.Name,
+				Game:       s.GameType,
+				Address:    s.Address,
+				Port:       s.Port,
+				Status:     s.Status,
+				Region:     "",
+				Players:    http.PlayersInfo{Current: 0, Max: 0},
 				ConnectURL: "",
 				ManageURL:  "",
 			}
@@ -517,22 +521,22 @@ func main() {
 		}
 		// Map to http struct to avoid import cycle
 		data := &http.AdminDashboardData{
-			TotalServers:        dataRaw.TotalServers,
-			ActiveServers:       dataRaw.ActiveServers,
-			ServerUtilization:   dataRaw.ServerUtilization,
-			Servers:             make([]http.AdminServer, 0, len(dataRaw.Servers)),
-			TotalUsers:          dataRaw.TotalUsers,
-			PremiumUsers:        dataRaw.PremiumUsers,
-			PremiumPercentage:   dataRaw.PremiumPercentage,
-			TotalGuilds:         dataRaw.TotalGuilds,
+			TotalServers:         dataRaw.TotalServers,
+			ActiveServers:        dataRaw.ActiveServers,
+			ServerUtilization:    dataRaw.ServerUtilization,
+			Servers:              make([]http.AdminServer, 0, len(dataRaw.Servers)),
+			TotalUsers:           dataRaw.TotalUsers,
+			PremiumUsers:         dataRaw.PremiumUsers,
+			PremiumPercentage:    dataRaw.PremiumPercentage,
+			TotalGuilds:          dataRaw.TotalGuilds,
 			TotalTreasuryBalance: dataRaw.TotalTreasuryBalance,
-			TopGuilds:           make([]http.AdminGuild, 0, len(dataRaw.TopGuilds)),
-			CreditsEarnedToday:  dataRaw.CreditsEarnedToday,
-			CPUUsage:            dataRaw.CPUUsage,
-			MemoryUsage:         dataRaw.MemoryUsage,
-			NetworkIO:           dataRaw.NetworkIO,
-			NetworkUtilization:  dataRaw.NetworkUtilization,
-			Version:             version.Version,
+			TopGuilds:            make([]http.AdminGuild, 0, len(dataRaw.TopGuilds)),
+			CreditsEarnedToday:   dataRaw.CreditsEarnedToday,
+			CPUUsage:             dataRaw.CPUUsage,
+			MemoryUsage:          dataRaw.MemoryUsage,
+			NetworkIO:            dataRaw.NetworkIO,
+			NetworkUtilization:   dataRaw.NetworkUtilization,
+			Version:              version.Version,
 		}
 		for _, s := range dataRaw.Servers {
 			data.Servers = append(data.Servers, http.AdminServer{
@@ -576,13 +580,13 @@ func main() {
 	} else {
 		// Set Discord session for notification service
 		commandHandler.SetDiscordSession(session)
-		
+
 		// Initialize role sync service after Discord connection (sync every 10 minutes)
 		if cfg.Roles.VerifiedRoleID != "" && cfg.Discord.GuildID != "" {
 			roleSyncService := services.NewRoleSyncService(dbService.DB(), session, cfg.Discord.GuildID, cfg.Roles.VerifiedRoleID, cfg.Roles.PremiumRoleID, 10*time.Minute)
 			go roleSyncService.Start()
 		}
-		
+
 		defer func() {
 			if err := session.Close(); err != nil {
 				log.Printf("Error closing Discord session: %v", err)

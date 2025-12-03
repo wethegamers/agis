@@ -27,100 +27,55 @@
   <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-postgresql.svg" alt="PostgreSQL 16">
 </p>
 
-Advanced Gaming Integration System (AGIS) is a production-grade, Kubernetes-native Discord automation layer that orchestrates Agones game fleets, Vault-backed secrets, and fully automated guild economies for WeTheGamers.
-
-**Version:** 1.7.0  
-**Status:** Production Ready 🚀
+Advanced Gaming Integration System (AGIS) is a Kubernetes-native Discord bot for managing game server infrastructure using Agones.
 
 ## Overview
 
-AGIS Bot powers **WeTheGamers (WTG)** - a community-driven game server hosting platform with guild economics, dynamic pricing, and zero-touch payment automation.
+AGIS powers **WeTheGamers (WTG)** - a community-driven game server platform with guild-based server management.
 
 ## Features
 
-### Core Platform
-- **16 Game Types**: Minecraft, Terraria, CS2, Valheim, Rust, ARK, Palworld, and more
-- **Dynamic Pricing System**: Database-driven costs (28-39% margins) with 5-min cache
-- **Guild Treasury**: Shared wallets enabling Titan-tier servers (Blue Ocean strategy)
-- **Server Reviews**: 1-5 star ratings with community feedback (unique to WTG)
-- **Public Lobby**: Browse and join community servers with search
-
-### Economy & Monetization
-- **Dual Currency**: GameCredits (earned) + WTG Coins (purchased)
-- **Premium Subscription**: $3.99/mo with 3x multiplier, 5 WTG allowance, 100 GC daily
-- **Stripe Integration**: Zero-touch payment automation with webhook fulfillment
-- **Automated Subscriptions**: Auto-apply benefits, background expiration, revenue tracking
-
-### Technical Excellence
-- **Cloud-Native**: Kubernetes + Agones + PostgreSQL + Minio
-- **Zero-Touch Operations**: Automated payments, subscriptions, server lifecycle
-- **Production Ready**: Health endpoints, Prometheus metrics, disaster recovery (RTO 30min)
-- **CI/CD**: GitHub Actions + Argo Workflows with multi-environment deployments
-- **Security**: Vault secrets, ExternalSecrets, RBAC, network policies
+- **Game Server Management**: Deploy and manage game servers via Discord commands
+- **Agones Integration**: Native Kubernetes game server orchestration
+- **Guild System**: Community-based server ownership and management
+- **Economy System**: In-game currency for server rentals and upgrades
+- **Cloud-Native**: Built for Kubernetes with GitOps deployment
 
 ## Project Structure
 
 ```
-├── .argo/                 # Argo Workflows for CI/CD
-├── .github/               # GitHub Actions workflows
 ├── charts/                # Helm chart for Kubernetes deployment
 ├── cmd/                   # Application entrypoints
 ├── main.go                # Application entry point
-├── scripts/               # Build and deployment scripts
-├── deployments/           # Kubernetes deployment resources
-│   ├── k8s/              # Kubernetes manifests
-│   │   └── fleets/       # Agones Fleet configurations
-│   ├── webhook-proxy/    # GitHub-Discord webhook proxy
-│   ├── grafana/          # Grafana dashboards
-│   ├── migrations/       # Database migrations
-│   └── sentry/           # Sentry configuration
-├── docs/                  # Documentation
-│   ├── setup/            # Setup and configuration guides
-│   ├── webhook-setup/    # Webhook configuration
-│   └── archive/          # Historical documentation
-└── archive/               # Legacy milestone tracking
+├── deployments/           # Kubernetes manifests and migrations
+└── docs/                  # Documentation
 ```
 
 > **Note**: Core business logic is maintained in a separate private repository (`agis-core`).
 
 ## Quick Start
 
+### Prerequisites
+- Go 1.24+
+- PostgreSQL 16+
+- Kubernetes cluster with Agones
+
 ### Local Development
-1. Copy `.env.example` to `.env` and configure
-2. Set up PostgreSQL database
-3. Run: `go run main.go`
+```bash
+cp .env.example .env
+# Configure your environment variables
+go run main.go
+```
 
 ### Kubernetes Deployment
-- **Production**: Managed via ArgoCD with GitOps
-- **Development**: Use Helm chart in `charts/agis-bot/`
-- **Secrets**: Vault integration with ExternalSecrets
-
-## CI/CD Pipeline
-
-- **GitHub Actions**: Triggers on main branch pushes
-- **Argo Workflows**: Container builds and multi-environment deployments
-- **Discord Notifications**: Real-time CI/CD status updates
-- **Environments**: Development → Staging → Production
+Deploy using the Helm chart in `charts/agis-bot/` or via ArgoCD.
 
 ## Documentation
 
-### For Users
-- **[User Guide](docs/USER_GUIDE.md)**: Complete guide for Discord users (591 lines)
-  - Getting started, economy system, premium benefits
-  - All 60+ commands with examples
-  - Guild treasury guide, server management, FAQ
+- **[Contributing](CONTRIBUTING.md)**: How to contribute
+- **[Security](SECURITY.md)**: Security policy and vulnerability reporting
+- **[Code of Conduct](CODE_OF_CONDUCT.md)**: Community guidelines
 
-### For Operators
-- **[Operations Manual](docs/OPS_MANUAL.md)**: Full O&M guide for DevOps/SRE (1,042 lines)
-  - Architecture, deployment, monitoring, scaling
-  - Database management, backup/recovery procedures
-  - Security, troubleshooting runbooks, incident response
-- **[Quick Reference](docs/QUICK_REFERENCE.md)**: Print-ready on-call card (401 lines)
-  - 30-second health check, emergency procedures
-  - Common operations, monitoring queries, useful aliases
+## License
 
-### Technical Documentation
-- **Blockers Completed**: `docs/BLOCKER_{1,2,3,4,5,6,8}_COMPLETED.md`
-- **Commands**: See `COMMANDS.md` or use `@AGIS help` in Discord
-- **Setup Guides**: `docs/webhook-setup/`, `docs/AGONES_INTEGRATION.md`
-- **Database**: `internal/database/migrations/`, `internal/database/seeds/`
+This project is licensed under the [Business Source License 1.1](LICENSE). See the LICENSE file for details.
