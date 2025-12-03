@@ -13,17 +13,16 @@ RUN apk add --no-cache git
 # Configure private module access (skip checksum DB for wethegamers modules)
 ENV GOPRIVATE=github.com/wethegamers/*
 
-COPY go.mod go.sum ./
+# Copy all source first
+COPY . .
 
-# Remove replace directive for CI builds (use git fetch)
+# Remove replace directive for CI builds (use git fetch instead of local path)
 RUN sed -i '/^replace/d' go.mod
 
 # Download dependencies - uses git credentials from build secrets
 RUN --mount=type=secret,id=github_token \
     git config --global url."https://$(cat /run/secrets/github_token)@github.com/".insteadOf "https://github.com/" && \
     go mod download
-
-COPY . .
 
 # Build with version information injected
 RUN go build -ldflags="-X github.com/wethegamers/agis-core/version.Version=${VERSION} -X github.com/wethegamers/agis-core/version.GitCommit=${GIT_COMMIT} -X github.com/wethegamers/agis-core/version.BuildDate=${BUILD_DATE}" -o agis-bot .
