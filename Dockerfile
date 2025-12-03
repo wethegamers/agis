@@ -1,23 +1,27 @@
-FROM golang:1.24-alpine as builder
+FROM golang:1.24-alpine AS builder
 
 # Build arguments for version information
 ARG VERSION=dev
 ARG GIT_COMMIT=unknown
 ARG BUILD_DATE=unknown
-ARG GITHUB_TOKEN
 
 WORKDIR /app
 
-# Configure git for private repo access
+# Install git for private repo access
 RUN apk add --no-cache git
-RUN git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+
+# Configure private module access (skip checksum DB for wethegamers modules)
+ENV GOPRIVATE=github.com/wethegamers/*
 
 COPY go.mod go.sum ./
 
 # Remove replace directive for CI builds (use git fetch)
 RUN sed -i '/^replace/d' go.mod
 
-RUN go mod download
+# Download dependencies - uses git credentials from build secrets
+RUN --mount=type=secret,id=github_token \
+    git config --global url."https://$(cat /run/secrets/github_token)@github.com/".insteadOf "https://github.com/" && \
+    go mod download
 
 COPY . .
 

@@ -220,10 +220,11 @@ jobs:
           platforms: linux/arm64
           push: true
           build-args: |
-            GITHUB_TOKEN=${{ secrets.AGIS_CORE_PAT }}
             VERSION=${{ github.ref_name }}
             GIT_COMMIT=${{ github.sha }}
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
+          secrets: |
+            github_token=${{ secrets.AGIS_CORE_PAT }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
