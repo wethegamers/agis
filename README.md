@@ -4,6 +4,15 @@
   <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-dark-flat.svg" alt="AGIS Logo" width="300">
 </p>
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-go.svg" alt="Go 1.23">
+  <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-kubernetes.svg" alt="Kubernetes Native">
+  <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-agones.svg" alt="Agones SDK">
+  <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-discord.svg" alt="Discord Bot">
+  <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-postgresql.svg" alt="PostgreSQL 16">
+  <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-license.svg" alt="MIT License">
+</p>
+
 Advanced Gaming Integration System (AGIS) Bot for Discord - A Kubernetes-native Discord bot with Agones GameServer management capabilities.
 
 **Version:** 1.7.0  
