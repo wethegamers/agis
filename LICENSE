@@ -1,21 +1,29 @@
-MIT License
+Business Source License 1.1
 
-Copyright (c) 2025 wethegamers
+Parameters
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Licensor: wethegamers
+Licensed Work: AGIS Bot
+Additional Use Grant: You may make non-production, internal evaluation, testing, and proof-of-concept use of the Licensed Work. You may not offer the Licensed Work to third parties as a managed, hosted, or commercial service, nor may you run it in production for external customers.
+Change Date: 2029-01-01
+Change License: Apache License, Version 2.0
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Terms
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+The Licensor hereby grants you the right to copy, modify, create derivative works, redistribute, and make non-production use of the Licensed Work. The Licensor may make an Additional Use Grant, above, permitting limited production use.
+
+Effective on the Change Date, or the fourth anniversary of the first publicly available distribution of a specific version of the Licensed Work under this License, whichever comes first, the License grants you the additional right to make the Licensed Work available for any purpose, provided that you comply with the Change License.
+
+If your use of the Licensed Work does not comply with the Additional Use Grant, you must obtain a commercial license from the Licensor or cease using the Licensed Work.
+
+The Licensor reserves all rights not expressly granted to you in this License.
+
+You must comply with any export control laws applicable to your use of the Licensed Work.
+
+THE LICENSED WORK IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT, ABSENCE OF LATENT OR OTHER DEFECTS, ACCURACY, OR THE PRESENCE OR ABSENCE OF ERRORS, WHETHER OR NOT DISCOVERABLE. SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OF IMPLIED WARRANTIES, SO SUCH EXCLUSION MAY NOT APPLY TO YOU.
+
+IN NO EVENT WILL THE LICENSOR BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL, INCIDENTAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES, OR ANY LOSS OF USE, DATA, OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, TORT (INCLUDING NEGLIGENCE), EQUITY, OR OTHERWISE, ARISING FROM OR IN CONNECTION WITH THE LICENSED WORK OR THIS LICENSE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+If you bring or participate in any patent claim against the Licensor (including any cross-claim or counterclaim in a lawsuit) alleging that the Licensed Work infringes any patent, then any patent license provided under this License for the Licensed Work ends immediately.
+
+You must include a copy of this License with every copy of the Licensed Work you distribute or publicly perform, including in the documentation and header files.

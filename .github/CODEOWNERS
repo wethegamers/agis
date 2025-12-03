@@ -1,0 +1,40 @@
+# CODEOWNERS for AGIS Bot
+# These owners will be requested for review when someone opens a pull request.
+# Learn more: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @wethegamers/platform-team
+
+# Go source code
+*.go @wethegamers/platform-team
+/cmd/ @wethegamers/platform-team
+/internal/ @wethegamers/platform-team
+
+# Helm charts
+/charts/ @wethegamers/platform-team
+
+# Kubernetes manifests and deployments
+/deployments/ @wethegamers/platform-team
+*.yaml @wethegamers/platform-team
+*.yml @wethegamers/platform-team
+
+# CI/CD workflows
+/.github/workflows/ @wethegamers/platform-team
+
+# Documentation
+*.md @wethegamers/platform-team
+/docs/ @wethegamers/platform-team
+
+# Configuration
+/configs/ @wethegamers/platform-team
+
+# Build and scripts
+Makefile @wethegamers/platform-team
+Dockerfile @wethegamers/platform-team
+/scripts/ @wethegamers/platform-team
+/build/ @wethegamers/platform-team
+
+# Security-sensitive files (require explicit approval)
+SECURITY.md @wethegamers/platform-team
+LICENSE @wethegamers/platform-team
+/.github/CODEOWNERS @wethegamers/platform-team

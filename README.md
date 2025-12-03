@@ -2,31 +2,32 @@
 
 <p align="center">
   <a href="#gh-dark-mode-only">
-    <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-light-flat.svg" alt="AGIS Logo" width="300">
+    <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-dark-flat.svg" alt="AGIS Logo" width="300">
   </a>
   <a href="#gh-light-mode-only">
-    <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-dark-flat.svg" alt="AGIS Logo" width="300">
+    <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-light-flat.svg" alt="AGIS Logo" width="300">
   </a>
 </p>
 
 <!-- Dynamic Badges -->
 <p align="center">
-  <a href="https://github.com/wethegamers/agis/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/wethegamers/agis/build.yml?branch=main&style=flat-square&logo=github&label=Build" alt="Build Status"></a>
-  <a href="https://github.com/wethegamers/agis/releases"><img src="https://img.shields.io/github/v/release/wethegamers/agis?style=flat-square&logo=github&label=Release" alt="Release"></a>
-  <a href="https://github.com/wethegamers/agis/blob/main/LICENSE"><img src="https://img.shields.io/github/license/wethegamers/agis?style=flat-square" alt="License"></a>
+  <a href="https://github.com/wethegamers/agis/actions/workflows/ci.yaml"><img src="https://img.shields.io/github/actions/workflow/status/wethegamers/agis/ci.yaml?branch=main&style=flat-square&logo=github&label=CI" alt="CI Status"></a>
+  <a href="https://github.com/wethegamers/agis/tags"><img src="https://img.shields.io/github/v/tag/wethegamers/agis?style=flat-square&logo=github&label=Version&sort=semver" alt="Latest Tag"></a>
+  <a href="https://github.com/wethegamers/agis/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-BSL--1.1-blue?style=flat-square" alt="License"></a>
   <a href="https://goreportcard.com/report/github.com/wethegamers/agis"><img src="https://goreportcard.com/badge/github.com/wethegamers/agis?style=flat-square" alt="Go Report Card"></a>
   <a href="http://makeapullrequest.com"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square" alt="PRs Welcome"></a>
 </p>
 
 <!-- Technology Stack Badges -->
 <p align="center">
+  <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-go.svg" alt="Go 1.24">
   <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-kubernetes.svg" alt="Kubernetes Native">
   <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-agones.svg" alt="Agones SDK">
   <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-discord.svg" alt="Discord Bot">
   <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/badge-postgresql.svg" alt="PostgreSQL 16">
 </p>
 
-Advanced Gaming Integration System (AGIS) Bot for Discord - A Kubernetes-native Discord bot with Agones GameServer management capabilities.
+Advanced Gaming Integration System (AGIS) is a production-grade, Kubernetes-native Discord automation layer that orchestrates Agones game fleets, Vault-backed secrets, and fully automated guild economies for WeTheGamers.
 
 **Version:** 1.7.0  
 **Status:** Production Ready 🚀
