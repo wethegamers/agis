@@ -35,6 +35,11 @@ jobs:
           file: ./Dockerfile
           platforms: linux/arm64
           push: true
+          build-args: |
+            GITHUB_TOKEN=${{ secrets.AGIS_CORE_PAT }}
+            VERSION=${{ github.ref_name }}
+            GIT_COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/agis-bot:arm64-alpha
             ghcr.io/${{ github.repository_owner }}/agis-bot:sha-${{ github.sha }}

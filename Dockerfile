@@ -1,18 +1,28 @@
-FROM golang:1.23-alpine as builder
+FROM golang:1.24-alpine as builder
 
 # Build arguments for version information
 ARG VERSION=dev
 ARG GIT_COMMIT=unknown
 ARG BUILD_DATE=unknown
+ARG GITHUB_TOKEN
 
 WORKDIR /app
+
+# Configure git for private repo access
+RUN apk add --no-cache git
+RUN git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+
 COPY go.mod go.sum ./
+
+# Remove replace directive for CI builds (use git fetch)
+RUN sed -i '/^replace/d' go.mod
+
 RUN go mod download
 
 COPY . .
 
 # Build with version information injected
-RUN go build -ldflags="-X agis-bot/internal/version.Version=${VERSION} -X agis-bot/internal/version.GitCommit=${GIT_COMMIT} -X agis-bot/internal/version.BuildDate=${BUILD_DATE}" -o agis-bot .
+RUN go build -ldflags="-X github.com/wethegamers/agis-core/version.Version=${VERSION} -X github.com/wethegamers/agis-core/version.GitCommit=${GIT_COMMIT} -X github.com/wethegamers/agis-core/version.BuildDate=${BUILD_DATE}" -o agis-bot .
 
 FROM alpine:3.18
 WORKDIR /app

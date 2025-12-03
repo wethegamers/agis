@@ -9,12 +9,13 @@
   </a>
 </p>
 
-<!-- Status Badges -->
+<!-- Dynamic Badges -->
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.7.0-blue?style=flat-square" alt="Version">
-  <img src="https://img.shields.io/badge/go-1.24-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go 1.24">
-  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License">
-  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square" alt="PRs Welcome">
+  <a href="https://github.com/wethegamers/agis/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/wethegamers/agis/build.yml?branch=main&style=flat-square&logo=github&label=Build" alt="Build Status"></a>
+  <a href="https://github.com/wethegamers/agis/releases"><img src="https://img.shields.io/github/v/release/wethegamers/agis?style=flat-square&logo=github&label=Release" alt="Release"></a>
+  <a href="https://github.com/wethegamers/agis/blob/main/LICENSE"><img src="https://img.shields.io/github/license/wethegamers/agis?style=flat-square" alt="License"></a>
+  <a href="https://goreportcard.com/report/github.com/wethegamers/agis"><img src="https://goreportcard.com/badge/github.com/wethegamers/agis?style=flat-square" alt="Go Report Card"></a>
+  <a href="http://makeapullrequest.com"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square" alt="PRs Welcome"></a>
 </p>
 
 <!-- Technology Stack Badges -->
@@ -63,14 +64,7 @@ AGIS Bot powers **WeTheGamers (WTG)** - a community-driven game server hosting p
 ├── .github/               # GitHub Actions workflows
 ├── charts/                # Helm chart for Kubernetes deployment
 ├── cmd/                   # Application entrypoints
-├── internal/              # Internal Go packages
-│   ├── agones/           # Agones SDK client
-│   ├── bot/              # Discord bot and commands
-│   ├── config/           # Configuration management
-│   ├── database/         # Database migrations and seeds
-│   ├── http/             # HTTP server (webhooks, metrics, API)
-│   ├── payment/          # Stripe integration
-│   └── services/         # Business logic services
+├── main.go                # Application entry point
 ├── scripts/               # Build and deployment scripts
 ├── deployments/           # Kubernetes deployment resources
 │   ├── k8s/              # Kubernetes manifests
@@ -85,6 +79,8 @@ AGIS Bot powers **WeTheGamers (WTG)** - a community-driven game server hosting p
 │   └── archive/          # Historical documentation
 └── archive/               # Legacy milestone tracking
 ```
+
+> **Note**: Core business logic is maintained in a separate private repository (`agis-core`).
 
 ## Quick Start
 
