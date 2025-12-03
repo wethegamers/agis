@@ -167,7 +167,8 @@ func main() {
 				// Log available games
 				games := hotCfg.GetEnabledGames()
 				log.Printf("   📋 %d games configured: ", len(games))
-				for name, game := range games {
+				for name := range games {
+					game := games[name]
 					log.Printf("      - %s (%s): %d GC/hour", name, game.Tier, game.BaseCostPerHour)
 				}
 			}
@@ -255,14 +256,14 @@ func main() {
 	token := cfg.Discord.Token
 	if token == "" {
 		log.Println("❌ DISCORD_TOKEN is required")
-		os.Exit(1)
+		os.Exit(1) //nolint:gocritic // Fatal startup error, defer cleanup not critical
 	}
 
 	// Create Discord session
 	session, err := discordgo.New("Bot " + token)
 	if err != nil {
 		log.Printf("Failed to create Discord session: %v", err)
-		os.Exit(1)
+		os.Exit(1) //nolint:gocritic // Fatal startup error, defer cleanup not critical
 	}
 
 	// Enable state tracking for member updates (required for BeforeUpdate)
@@ -274,7 +275,7 @@ func main() {
 	dbService, err := services.NewDatabaseService(cfg)
 	if err != nil {
 		log.Printf("Failed to initialize database service: %v", err)
-		os.Exit(1)
+		os.Exit(1) //nolint:gocritic // Fatal startup error, defer cleanup not critical
 	}
 	log.Println("✅ Database service initialized")
 
