@@ -1,10 +1,12 @@
 # AGIS Bot - GitHub Copilot Instructions
 
-**Version**: 2.0.0  
-**Last Updated**: 2025-11-30  
+**Version**: 2.1.0  
+**Last Updated**: 2025-12-03  
 **Repository**: wethegamers/agis-bot
 
 > **Master Instructions**: See `/home/seb/wtg/.github/copilot-instructions.md` for platform-wide standards, naming conventions, and architecture overview.
+
+> **VS Code Prompts**: Use `/prompt:code-review`, `/prompt:troubleshooting`, `/prompt:software-engineer` for specialized tasks.
 
 > **AI Resources**:
 > - Go guidance: `/home/seb/wtg/ai/instructions/go.md`
