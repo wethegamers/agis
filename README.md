@@ -1,5 +1,9 @@
 # AGIS Bot
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-logo-dark-flat.svg" alt="AGIS Logo" width="300">
+</p>
+
 Advanced Gaming Integration System (AGIS) Bot for Discord - A Kubernetes-native Discord bot with Agones GameServer management capabilities.
 
 **Version:** 1.7.0  
