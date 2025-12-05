@@ -1,7 +1,7 @@
 # AGIS Bot
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-colour.svg" alt="AGIS Logo" width="230">
+  <img src="https://raw.githubusercontent.com/wethegamers/branding/main/logo/wtg-agis-colour.svg" width="60%" alt="WeTheGamers Logo" />
 </p>
 
 <!-- Dynamic Badges -->

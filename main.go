@@ -27,8 +27,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/lib/pq"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -40,113 +38,9 @@ var (
 	cfg            *config.Config
 )
 
-// Prometheus metrics (auto-registered via promauto)
-var (
-	commandsExecuted = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "agis_commands_total",
-			Help: "Total number of Discord commands executed",
-		},
-		[]string{"command", "user_id"},
-	)
-	serversManaged = promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "agis_game_servers_total",
-			Help: "Number of game servers managed by Agis",
-		},
-		[]string{"game_type", "status"},
-	)
-	creditsTransactions = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "agis_credits_transactions_total",
-			Help: "Total number of credit transactions",
-		},
-		[]string{"transaction_type", "user_id"},
-	)
-	activeUsers = promauto.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "agis_active_users_total",
-			Help: "Number of active users in the system",
-		},
-	)
-	databaseOperations = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "agis_database_operations_total",
-			Help: "Total number of database operations",
-		},
-		[]string{"operation", "table"},
-	)
-
-	// Ad conversion metrics
-	adConversionsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "agis_ad_conversions_total",
-			Help: "Total number of ad conversions processed",
-		},
-		[]string{"provider", "type", "status"},
-	)
-	adRewardsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "agis_ad_rewards_total",
-			Help: "Total Game Credits rewarded from ad conversions",
-		},
-		[]string{"provider", "type"},
-	)
-	adFraudAttemptsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "agis_ad_fraud_attempts_total",
-			Help: "Total number of detected fraud attempts",
-		},
-		[]string{"provider", "reason"},
-	)
-	adCallbackLatency = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "agis_ad_callback_latency_seconds",
-			Help:    "Latency of ad callback processing in seconds",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"provider", "status"},
-	)
-	adConversionsByTier = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "agis_ad_conversions_by_tier_total",
-			Help: "Ad conversions broken down by user tier",
-		},
-		[]string{"tier"},
-	)
-
-	// Scheduler metrics
-	schedulerActiveSchedules = promauto.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "agis_scheduler_active_schedules",
-			Help: "Number of active server schedules",
-		},
-	)
-	schedulerExecutionsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "agis_scheduler_executions_total",
-			Help: "Total scheduler executions",
-		},
-		[]string{"action", "status"},
-	)
-
-	// API metrics
-	apiRequestsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "agis_api_requests_total",
-			Help: "Total REST API requests",
-		},
-		[]string{"method", "endpoint", "status"},
-	)
-	apiRequestDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "agis_api_request_duration_seconds",
-			Help:    "API request duration in seconds",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"method", "endpoint"},
-	)
-)
+// Note: Prometheus metrics are defined in internal/metrics package
+// and are auto-registered via promauto. Do not duplicate here.
+// Import metrics package and use metrics.CommandsTotal, etc.
 
 //nolint:gocyclo // Main function orchestrates initialization; refactoring planned for v2.0
 func main() {
@@ -331,11 +225,11 @@ func main() {
 
 	// Initialize ad metrics collector
 	adMetrics := services.NewAdMetrics(
-		adConversionsTotal,
-		adRewardsTotal,
-		adFraudAttemptsTotal,
-		adCallbackLatency,
-		adConversionsByTier,
+		metrics.AdConversionsTotal,
+		metrics.AdRewardsTotal,
+		metrics.AdFraudAttemptsTotal,
+		metrics.AdCallbackLatency,
+		metrics.AdConversionsByTier,
 	)
 	adConversionService.SetMetrics(adMetrics)
 	ayetHandler.SetMetrics(adMetrics)
@@ -463,7 +357,7 @@ func main() {
 	// Initialize scheduler service with metrics
 	var schedulerService *services.SchedulerService
 	if commandHandler.EnhancedService() != nil {
-		schedulerService = services.NewSchedulerService(dbService, commandHandler.EnhancedService(), schedulerActiveSchedules, schedulerExecutionsTotal)
+		schedulerService = services.NewSchedulerService(dbService, commandHandler.EnhancedService(), metrics.SchedulerActiveSchedules, metrics.SchedulerExecutionsTotal)
 		if err := schedulerService.Start(); err != nil {
 			log.Printf("⚠️ Failed to start scheduler: %v", err)
 		} else {

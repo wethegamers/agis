@@ -145,6 +145,75 @@ var (
 	)
 )
 
+// Ad conversion metrics
+var (
+	AdConversionsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: Namespace,
+			Name:      "ad_conversions_total",
+			Help:      "Total number of ad conversions processed",
+		},
+		[]string{"provider", "type", "status"},
+	)
+
+	AdRewardsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: Namespace,
+			Name:      "ad_rewards_total",
+			Help:      "Total Game Credits rewarded from ad conversions",
+		},
+		[]string{"provider", "type"},
+	)
+
+	AdFraudAttemptsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: Namespace,
+			Name:      "ad_fraud_attempts_total",
+			Help:      "Total number of detected fraud attempts",
+		},
+		[]string{"provider", "reason"},
+	)
+
+	AdCallbackLatency = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: Namespace,
+			Name:      "ad_callback_latency_seconds",
+			Help:      "Latency of ad callback processing in seconds",
+			Buckets:   prometheus.DefBuckets,
+		},
+		[]string{"provider", "status"},
+	)
+
+	AdConversionsByTier = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: Namespace,
+			Name:      "ad_conversions_by_tier_total",
+			Help:      "Ad conversions broken down by user tier",
+		},
+		[]string{"tier"},
+	)
+)
+
+// Scheduler metrics
+var (
+	SchedulerActiveSchedules = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "scheduler_active_schedules",
+			Help:      "Number of active server schedules",
+		},
+	)
+
+	SchedulerExecutionsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: Namespace,
+			Name:      "scheduler_executions_total",
+			Help:      "Total scheduler executions",
+		},
+		[]string{"action", "status"},
+	)
+)
+
 // Build info metric
 var BuildInfo = promauto.NewGaugeVec(
 	prometheus.GaugeOpts{
