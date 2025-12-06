@@ -5,7 +5,7 @@ set -e
 # This script adds all required secrets to Vault for the specified environment
 
 VAULT_ADDR="${VAULT_ADDR:-http://vault.vault.svc.cluster.local:8200}"
-VAULT_TOKEN="${VAULT_TOKEN:-hvs.kjP6fT17rS8dnnW7NTZqUOgm}"
+VAULT_TOKEN="${VAULT_TOKEN:?Error: VAULT_TOKEN environment variable must be set}"
 ENVIRONMENT="${1:-development}"
 
 echo "🔐 AGIS Bot v2.0 - Vault Secrets Setup"

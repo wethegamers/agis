@@ -5,7 +5,7 @@ set -e
 # Run with: kubectl port-forward -n vault svc/vault 8200:8200 (in another terminal)
 
 export VAULT_ADDR="http://localhost:8200"
-export VAULT_TOKEN="hvs.kjP6fT17rS8dnnW7NTZqUOgm"
+export VAULT_TOKEN="${VAULT_TOKEN:-}"  # Set via environment variable for security
 
 echo "🔐 Adding development secrets to Vault"
 echo "Vault: $VAULT_ADDR"
