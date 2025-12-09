@@ -41,7 +41,7 @@ This step verifies that all Discord webhooks and Sentry alerts are working corre
 ```bash
 # Get webhook URLs
 export VAULT_ADDR="http://localhost:8200"
-export VAULT_TOKEN="hvs.kjP6fT17rS8dnnW7NTZqUOgm"
+export VAULT_TOKEN="<redacted>"
 
 # Get each webhook
 vault kv get -field=DISCORD_WEBHOOK_PAYMENTS secret/development/agis-bot

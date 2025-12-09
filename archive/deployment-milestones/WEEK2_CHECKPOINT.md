@@ -109,7 +109,7 @@ kubectl -n postgres-dev exec -i postgres-dev-0 -- psql -U agis_dev_user -d agis_
 
 # Check Vault
 export VAULT_ADDR="http://localhost:8200"
-export VAULT_TOKEN="hvs.kjP6fT17rS8dnnW7NTZqUOgm"
+export VAULT_TOKEN="<redacted>"
 vault kv get secret/development/agis-bot
 ```
 

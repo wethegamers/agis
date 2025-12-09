@@ -57,7 +57,7 @@ kubectl port-forward -n vault svc/vault 8200:8200 &
 
 # Set environment variables
 export VAULT_ADDR="http://localhost:8200"
-export VAULT_TOKEN="hvs.kjP6fT17rS8dnnW7NTZqUOgm"
+export VAULT_TOKEN="<redacted>"
 
 # Update Sentry DSN
 vault kv patch secret/development/agis-bot \
